@@ -7,4 +7,9 @@ public strictfp class Miner extends Unit {
         super(rc);
     }
 
+    @Override
+    public void run() {
+        // TODO Auto-generated method stub
+    }
+
 }
