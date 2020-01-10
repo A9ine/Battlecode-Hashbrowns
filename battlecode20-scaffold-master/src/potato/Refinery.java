@@ -1,6 +1,10 @@
 package potato;
 import battlecode.common.*;
 
-public strictfp class Building extends Robot {
+public strictfp class Refinery extends Robot {
+
+    Refinery(RobotController rc) {
+        super(rc);
+    }
 
 }

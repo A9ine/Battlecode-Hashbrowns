@@ -4,7 +4,7 @@ import battlecode.common.*;
 public strictfp class RobotPlayer {
 
     static RobotController rc;
-    static int turnCount;
+    static Robot robot;
 
     @SuppressWarnings("unused")
     public static void run(RobotController rc) throws GameActionException {
@@ -13,20 +13,22 @@ public strictfp class RobotPlayer {
         RobotPlayer.rc = rc;
         turnCount = 0;
 
-        switch (rcgetType()) {
-            case value:
-                
-                break;
-        
-            default:
-                break;
+        switch (rc.getType()) {
+            case HQ:                 robot = new HQ(rc);                 break;
+            case MINER:              robot = new Miner(rc);              break;
+            case REFINERY:           robot = new Refinery(rc);           break;
+            case VAPORATOR:          robot = new Building(rc);           break;
+            case DESIGN_SCHOOL:      robot = new Construction(rc);       break;
+            case FULFILLMENT_CENTER: robot = new Construction(rc);       break;
+            case LANDSCAPER:         robot = new Landscaper(rc);         break;
+            case DELIVERY_DRONE:     robot = new Drone(rc);              break;
+            case NET_GUN:            robot = new Turret(rc);             break;
         }
 
         while (true) {
-            turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-
+                robot.run();
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
 

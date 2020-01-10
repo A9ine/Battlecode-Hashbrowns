@@ -3,4 +3,8 @@ import battlecode.common.*;
 
 public strictfp class Drone extends Unit {
 
+    Drone(RobotController rc) {
+        super(rc);
+    }
+
 }
