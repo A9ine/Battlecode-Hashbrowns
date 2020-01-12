@@ -8,7 +8,7 @@ public strictfp class Turret extends Building {
     }
 
     @Override
-    public void run() {
+    public void run() throws GameActionException {
         Team enemy = rc.getTeam().opponent();
         //See if there are any enemy robots within striking range
         RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED,enemy);
