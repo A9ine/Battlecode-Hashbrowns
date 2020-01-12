@@ -8,7 +8,7 @@ public strictfp class Turret extends Building {
     }
 
     @Override
-    public void run() {
+    public void run() throws GameActionException {
         
     }
 
