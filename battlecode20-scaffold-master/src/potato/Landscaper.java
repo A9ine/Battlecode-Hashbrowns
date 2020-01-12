@@ -8,7 +8,7 @@ public strictfp class Landscaper extends Unit {
     }
 
     @Override
-    public void run() {
+    public void run() throws GameActionException {
         
     }
 

@@ -29,7 +29,7 @@ public strictfp class Miner extends Unit {
 
 
     @Override
-    public void run() {
+    public void run() throws GameActionException{
         // TODO Auto-generated method stub
     }
 
