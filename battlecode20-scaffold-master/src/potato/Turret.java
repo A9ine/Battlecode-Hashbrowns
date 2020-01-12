@@ -7,4 +7,9 @@ public strictfp class Turret extends Building {
         super(rc);
     }
 
+    @Override
+    public void run() {
+        
+    }
+
 }

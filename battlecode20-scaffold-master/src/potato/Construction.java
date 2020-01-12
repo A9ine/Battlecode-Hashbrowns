@@ -7,4 +7,9 @@ public strictfp class Construction extends Building {
         super(rc);
     }
 
+    @Override
+    public void run() {
+        
+    }
+
 }

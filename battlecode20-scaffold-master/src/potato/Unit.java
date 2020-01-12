@@ -1,7 +1,7 @@
 package potato;
 import battlecode.common.*;
 
-public strictfp class Unit extends Robot {
+public strictfp abstract class Unit extends Robot {
 
     static Direction[] directions = {
         Direction.NORTH,

@@ -11,7 +11,6 @@ public strictfp class RobotPlayer {
 
        //Init
         RobotPlayer.rc = rc;
-        turnCount = 0;
 
         switch (rc.getType()) {
             case HQ:                 robot = new HQ(rc);                 break;

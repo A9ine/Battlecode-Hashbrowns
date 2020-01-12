@@ -7,4 +7,9 @@ public strictfp class Refinery extends Robot {
         super(rc);
     }
 
+    @Override
+    public void run() {
+        
+    }
+
 }

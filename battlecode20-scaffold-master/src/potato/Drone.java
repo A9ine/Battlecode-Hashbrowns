@@ -7,4 +7,9 @@ public strictfp class Drone extends Unit {
         super(rc);
     }
 
+    @Override
+    public void run() {
+        
+    }
+
 }
