@@ -3,7 +3,7 @@ import battlecode.common.*;
 
 public strictfp class Refinery extends Robot {
 
-    Refinery(RobotController rc) {
+    Refinery(RobotController rc) throws GameActionException {
         super(rc);
     }
 

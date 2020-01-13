@@ -3,13 +3,13 @@ import battlecode.common.*;
 
 public strictfp class Drone extends Unit {
 
-    Drone(RobotController rc) {
+    Drone(RobotController rc) throws GameActionException{
         super(rc);
     }
 
     @Override
     public void run() throws GameActionException {
-        Team enemy = rc.getTeam().opponent();
+        /*Team enemy = rc.getTeam().opponent();
         MapLocation water = null;
         RobotInfo[] robots;
         // if drone is not holding unit or found water
@@ -36,17 +36,17 @@ public strictfp class Drone extends Unit {
         }
         else {
             // if drone is one step away from water
-            if (MapLocation.distanceSquaredTo(water)==1){
+            if (rc.getLocation().distanceSquaredTo(water)==1){
                 // drone drops robot into water
-                rc.dropUnit(MapLocation.directionTo(water));
+                rc.dropUnit(rc.getLocation().directionTo(water));
                 System.out.println("I dropped " + robots[0].getID() + "!");
             }
             else
             {
                 // if not near water, drone moves towards water
-                rc.move(MapLocation.directionTo(water));
+                rc.move(rc.getLocation().directionTo(water));
                 System.out.println("I moved!");
             } 
-        }        
+        } */       
     }        
 }

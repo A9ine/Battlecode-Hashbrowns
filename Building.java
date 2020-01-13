@@ -10,7 +10,7 @@ public strictfp class Building extends Robot {
         } else return false;
     }
 
-    Building(RobotController rc) {
+    Building(RobotController rc) throws GameActionException{
         super(rc);
     }
 

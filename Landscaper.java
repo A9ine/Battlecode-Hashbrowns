@@ -1,9 +1,9 @@
 package potato;
 import battlecode.common.*;
 
-public strictfp class Construction extends Building {
+public strictfp class Landscaper extends Unit {
 
-    Construction(RobotController rc) {
+    Landscaper(RobotController rc) throws GameActionException {
         super(rc);
     }
 
