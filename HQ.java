@@ -10,16 +10,25 @@ public strictfp class HQ extends Building {
 
     @Override
     public void run() throws GameActionException {
-        for (Direction dir : directions){
-            if(tryBuild(RobotType.MINER, dir) && firstRun == false) {
-                rc.build(RobotType.MINER,dir);
-                rc.build(RobotType.MINER,dir);
-                firstRun = true;
-                break;
-            }
-            if(tryBuild(RobotType.MINER, dir) && rc.getTeamSoup()>=70) {
-                rc.build(RobotType.MINER,dir);
-                break;
+        // if HQ is running for the first time, HQ produces 2 miners
+        if(firstRun == false) {
+            for (Direction dir : directions) {
+                if (tryBuild(RobotType.MINER, dir)) {
+                    rc.build(RobotType.MINER,dir);
+                    rc.build(RobotType.MINER,dir);
+                    firstRun = true;
+                    break;  
+                }
+            }        
+        }
+        else {
+            if (rc.getTeamSoup()<=70) {
+                for (Direction dir : directions) {
+                    if (tryBuild(RobotType.MINER, dir)){
+                        rc.build(RobotType.MINER,dir);
+                        break;
+                    }
+                }
             }
         }
     }
