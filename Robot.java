@@ -99,6 +99,16 @@ public strictfp abstract class Robot {
         return res;
     }
 
+    ArrayList<MapLocation> getAdjacent() throws GameActionException {
+        ArrayList<MapLocation> res = new ArrayList<MapLocation>();
+        for (Direction dir : directions) {
+            if (rc.onTheMap(rc.adjacentLocation(dir))) {
+                res.add(rc.adjacentLocation(dir));
+            }
+        }
+        return res;
+    }
+
     public abstract void run() throws GameActionException;
 
 }
