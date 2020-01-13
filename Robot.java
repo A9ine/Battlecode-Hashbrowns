@@ -37,7 +37,7 @@ public strictfp abstract class Robot {
     }
 
     //Return all map locations in sensing range
-    static ArrayList<MapLocation> getLineOfSense() throws GameActionException {
+    static ArrayList<MapLocation> getNear() throws GameActionException {
         ArrayList<MapLocation> res = new ArrayList<MapLocation>();
         MapLocation currentLoc = rc.getLocation();
         int maxDistance = (int)Math.floor(Math.sqrt(rc.getCurrentSensorRadiusSquared()));
