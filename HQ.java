@@ -27,6 +27,26 @@ public strictfp class HQ extends Building {
         findAndShoot();
         for (Direction dir : directions){
             tryBuild(RobotType.MINER, dir);
+        // if HQ is running for the first time, HQ produces 2 miners
+        if(firstRun == false) {
+            for (Direction dir : directions) {
+                if (tryBuild(RobotType.MINER, dir)) {
+                    rc.build(RobotType.MINER,dir);
+                    rc.build(RobotType.MINER,dir);
+                    firstRun = true;
+                    break;  
+                }
+            }        
+        }
+        else {
+            if (rc.getTeamSoup()<=70) {
+                for (Direction dir : directions) {
+                    if (tryBuild(RobotType.MINER, dir)){
+                        rc.build(RobotType.MINER,dir);
+                        break;
+                    }
+                }
+            }
         }
 
     }
