@@ -23,7 +23,7 @@ public strictfp abstract class Robot {
     Transaction[] latestCommunication;
 
     //This method will run each turn, with the exception of turn 1
-    update() {
+    void update() throws GameActionException {
         myMapLocation = rc.getLocation();
         sensedMapLocations = getNear();
         //Update local map
@@ -36,10 +36,10 @@ public strictfp abstract class Robot {
             }
         }
         //Update Robots
-        nearbyRobots = senseNearbyRobots();
+        nearbyRobots = rc.senseNearbyRobots();
         for (RobotInfo robot : nearbyRobots) {
             if (Arrays.asList(BUILDINGS).contains(robot.type)) {
-                map[processingMapLocation.x][processingMapLocation.y][2] = 1;
+                map[robot.getLocation().x][robot.getLocation().y][2] = 1;
             }
         }
         //Communication
