@@ -5,7 +5,11 @@ import battlecode.common.*;
 
 public strictfp abstract class Robot {
 
-    static ArrayList<Transaction> localBlockchain = new ArrayList<Transaction>();
+    Robot(RobotController rc) throws GameActionException {
+        Robot.rc = rc;
+    }
+
+    protected static RobotController rc;
     static int KEY = 69420;
     static Direction[] directions = {
         Direction.NORTH,
@@ -18,23 +22,17 @@ public strictfp abstract class Robot {
         Direction.NORTHWEST
     };
 
-    protected static RobotController rc;
-
-    Robot(RobotController rc) throws GameActionException {
-        Robot.rc = rc;
-    }
-
-    //TODO: Write proper encoding and decoding
+    //Communication Code
 
     static boolean trySendBlockchain(int[] message, int cost) throws GameActionException {
-        //All our messages will be encoded with a key. If you are not a potato and reading this
-        //We are going to change the key before competitions.
         if (rc.canSubmitTransaction(message, cost)) {
             rc.submitTransaction(message, cost);
             return true;
         }
         return false;
     }
+
+    //Sensing Code
 
     //Return all map locations in sensing range
     static ArrayList<MapLocation> getNear() throws GameActionException {

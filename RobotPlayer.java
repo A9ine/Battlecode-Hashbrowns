@@ -16,9 +16,9 @@ public strictfp class RobotPlayer {
             case HQ:                 robot = new HQ(rc);                 break;
             case MINER:              robot = new Miner(rc);              break;
             case REFINERY:           robot = new Refinery(rc);           break;
-            case VAPORATOR:          robot = new Building(rc);           break;
-            case DESIGN_SCHOOL:      robot = new Construction(rc);       break;
-            case FULFILLMENT_CENTER: robot = new Construction(rc);       break;
+            case VAPORATOR:          robot = new Vaporator(rc);           break;
+            case DESIGN_SCHOOL:      robot = new Design(rc);       break;
+            case FULFILLMENT_CENTER: robot = new Fulfillment(rc);       break;
             case LANDSCAPER:         robot = new Landscaper(rc);         break;
             case DELIVERY_DRONE:     robot = new Drone(rc);              break;
             case NET_GUN:            robot = new Turret(rc);             break;
