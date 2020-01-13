@@ -1,16 +1,56 @@
 package potato;
-import java.util.ArrayList;
-
+import java.util.*;
 import battlecode.common.*;
 
 public strictfp abstract class Robot {
 
     Robot(RobotController rc) throws GameActionException {
         Robot.rc = rc;
+        team = rc.getTeam();
+        turn = 0;
+        map = new int[rc.getMapWidth()][rc.getMapHeight()][3]; 
+        //[Elevation][Resources][Flooding = -1; Normal = 0; Building = 1; ]
     }
 
     protected static RobotController rc;
-    static int KEY = 69420;
+
+    /* Updated Information */
+    int turn;
+    MapLocation myMapLocation;
+    int[][][] map;
+    ArrayList<MapLocation> sensedMapLocations;
+    RobotInfo[] nearbyRobots;
+    Transaction[] latestCommunication;
+
+    //This method will run each turn, with the exception of turn 1
+    update() {
+        myMapLocation = rc.getLocation();
+        sensedMapLocations = getNear();
+        //Update local map
+        for (MapLocation processingMapLocation : sensedMapLocations) {
+            map[processingMapLocation.x][processingMapLocation.y][0] = rc.senseElevation(processingMapLocation);
+            map[processingMapLocation.x][processingMapLocation.y][1] = rc.senseSoup(processingMapLocation);
+            map[processingMapLocation.x][processingMapLocation.y][2] = 0;
+            if (rc.senseFlooding(processingMapLocation)) {
+                map[processingMapLocation.x][processingMapLocation.y][2] = -1;
+            }
+        }
+        //Update Robots
+        nearbyRobots = senseNearbyRobots();
+        for (RobotInfo robot : nearbyRobots) {
+            if (Arrays.asList(BUILDINGS).contains(robot.type)) {
+                map[processingMapLocation.x][processingMapLocation.y][2] = 1;
+            }
+        }
+        //Communication
+        latestCommunication = rc.getBlock(rc.getRoundNum()-1);
+    }
+
+    /* General Information */
+    MapLocation hqLoc;
+    int KEY = 69420;
+    Team team;
+
     static Direction[] directions = {
         Direction.NORTH,
         Direction.NORTHEAST,
@@ -21,6 +61,15 @@ public strictfp abstract class Robot {
         Direction.WEST,
         Direction.NORTHWEST
     };
+    static RobotType[] BUILDINGS = new RobotType[] {
+        RobotType.DESIGN_SCHOOL,
+        RobotType.HQ,
+        RobotType.NET_GUN,
+        RobotType.REFINERY,
+        RobotType.VAPORATOR,
+        RobotType.FULFILLMENT_CENTER
+    };
+
 
     //Communication Code
 
@@ -35,7 +84,7 @@ public strictfp abstract class Robot {
     //Sensing Code
 
     //Return all map locations in sensing range
-    static ArrayList<MapLocation> getNear() throws GameActionException {
+    ArrayList<MapLocation> getNear() throws GameActionException {
         ArrayList<MapLocation> res = new ArrayList<MapLocation>();
         MapLocation currentLoc = rc.getLocation();
         int maxDistance = (int)Math.floor(Math.sqrt(rc.getCurrentSensorRadiusSquared()));
