@@ -2,7 +2,6 @@ package potato;
 import battlecode.common.*;
 
 public strictfp class HQ extends Building {
-    boolean firstRun = false;
     Team enemy;
 
     HQ(RobotController rc) throws GameActionException {
@@ -25,24 +24,12 @@ public strictfp class HQ extends Building {
     @Override
     public void run() throws GameActionException {
         findAndShoot();
-        for (Direction dir : directions){
-            tryBuild(RobotType.MINER, dir);
-            // if HQ is running for the first time, HQ produces 2 miners
-            if(firstRun == false) {
-                if (tryBuild(RobotType.MINER, dir)) {
-                    rc.build(RobotType.MINER,dir);
-                    rc.build(RobotType.MINER,dir);
-                    firstRun = true;
-                    break;  
-                }
+        //First Turn
+        if (turn == 0) {
+            for (Direction dir : directions) {
+                tryBuild(RobotType.MINER, dir);
             }
-            else {
-                if (tryBuild(RobotType.MINER, dir) && rc.getTeamSoup()>=70) {
-                    rc.build(RobotType.MINER,dir);
-                    break;
-                }
-            }
-        }        
+        }
     }
 }
 
