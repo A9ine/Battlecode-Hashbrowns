@@ -11,6 +11,8 @@ public strictfp class Miner extends Unit {
 
     @Override
     public void run() throws GameActionException {
+        update();
+        bugNavigate(new MapLocation(rc.getMapWidth()-1,rc.getMapHeight()-1));
         
     }
 

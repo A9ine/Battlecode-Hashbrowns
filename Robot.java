@@ -24,6 +24,7 @@ public strictfp abstract class Robot {
 
     //This method will run each turn, with the exception of turn 1
     void update() throws GameActionException {
+        turn += 1;
         myMapLocation = rc.getLocation();
         sensedMapLocations = getNear();
         //Update local map

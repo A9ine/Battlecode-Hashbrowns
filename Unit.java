@@ -33,6 +33,9 @@ public strictfp abstract class Unit extends Robot {
     }
 
     double calculateGradient(MapLocation start, MapLocation end) {
+        if (end.x-start.x == 0) {
+            return -1;
+        }
         //Rise over run
         return (end.y-start.y)/(end.x-start.x);
     }
@@ -52,7 +55,7 @@ public strictfp abstract class Unit extends Robot {
 
     boolean bugNavigate(MapLocation target) throws GameActionException {
 
-        if (target == myMapLocation) {
+        if (target.equals(myMapLocation)) {
             isBugging = false;
             return true;
         }

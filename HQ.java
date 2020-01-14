@@ -23,9 +23,10 @@ public strictfp class HQ extends Building {
 
     @Override
     public void run() throws GameActionException {
+        update();
         findAndShoot();
         //First Turn
-        if (turn == 0) {
+        if (turn == 1) {
             for (Direction dir : directions) {
                 tryBuild(RobotType.MINER, dir);
             }
