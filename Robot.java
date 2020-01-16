@@ -12,7 +12,7 @@ public strictfp abstract class Robot {
         turn = 0;
         miniMapWidth = (rc.getMapWidth()+rc.getMapWidth()%4)/4; 
         miniMapHeight = (rc.getMapHeight()+rc.getMapHeight()%4)/4;
-        map = new int[miniMapWidth*miniMapHeight][4];
+        map = new int[miniMapWidth*(miniMapHeight+1)][4];
 
         myType = rc.getType(); 
         //[Elevation][Resources][Enemy][Friendly]
@@ -107,7 +107,7 @@ public strictfp abstract class Robot {
                 // 2 --> Wall
                 // 3 --> Attack
                 // 4 --> Transport
-            //[x + y]
+            //[flooded + x + y]
             //[Elevation]
             //[Soup]
             //[Robot Data (Team + Type)]
@@ -132,12 +132,29 @@ public strictfp abstract class Robot {
         int elevation = rc.senseElevation(loc);
         int flooded = rc.senseFlooding(loc)?1:0;
         RobotInfo robot = rc.senseRobotAtLocation(loc);
+        int roboteam = 0;
+        int robotype = 0;
+        if (robot!=null) {
+            roboteam = robot.getTeam()==team?0:1;
+            switch (robot.getType()) {
+                case HQ:                 robotype=1;                 break;
+                case MINER:              robotype=2;                 break;
+                case REFINERY:           robotype=3;                 break;
+                case VAPORATOR:          robotype=4;                 break;
+                case DESIGN_SCHOOL:      robotype=5;                 break;
+                case FULFILLMENT_CENTER: robotype=6;                 break;
+                case LANDSCAPER:         robotype=7;                 break;
+                case DELIVERY_DRONE:     robotype=8;                 break;
+                case NET_GUN:            robotype=9;                 break;
+            }
+        }
+
         secureSend(new int[] {
             0,
             flooded * 10000 + loc.x* 100 + loc.y,
             elevation,
             soup,
-            0, //TODO: Add robot Data
+            roboteam*10+robotype, 
             0
         }, cost);
         return true;

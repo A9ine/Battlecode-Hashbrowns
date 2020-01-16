@@ -29,14 +29,14 @@ public strictfp class RobotPlayer {
             try {
                 robot.run();
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                System.out.println("Ending my turn.....");
                 Clock.yield();
 
             } catch (Exception e) {
                 System.out.println(rc.getType() + " Exception");
                 e.printStackTrace();
                 //TODO: DELETE THIS LINE BEFORE THE COMPETITION
-                rc.resign();
+                //rc.resign();
+                //TODO: Issues with sensor range
             }
         }
     }

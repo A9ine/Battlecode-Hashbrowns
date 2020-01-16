@@ -14,12 +14,16 @@ public strictfp class HQ extends Building {
            //See if there are any enemy drones within striking range
            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED,enemy);
            //Now shoot them
-           if (robots.length > 0) {
-               rc.shootUnit(robots[0].getID());
-               System.out.println("I shot" + robots[0].getID() + "!");
+           for (RobotInfo robot : robots) {
+               if (robot.getType() == RobotType.DELIVERY_DRONE) {
+                   rc.shootUnit(robot.getID());
+                   System.out.println("I shot" + robot.getID() + "!");
+                   Clock.yield();
+               }
            }
+               
         }
-   }
+    }
 
     @Override
     public void run() throws GameActionException {
@@ -28,6 +32,8 @@ public strictfp class HQ extends Building {
         //First Turn
         //Find nearby soup
         if (turn == 1) {
+            System.out.println(miniMapWidth);
+            System.out.println(miniMapHeight);
             for (Direction dir : directions) {
                 tryBuild(RobotType.MINER, dir);
             }
@@ -35,7 +41,7 @@ public strictfp class HQ extends Building {
         }
 
         if (turn < 50) {
-            if (rc.getTeamSoup()>270) { //In case an idiot decides to attack
+            if (rc.getTeamSoup()>100) { //In case an idiot decides to attack
                 for (Direction dir : directions) {
                     tryBuild(RobotType.MINER, dir);
                 }

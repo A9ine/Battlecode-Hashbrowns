@@ -37,6 +37,7 @@ public strictfp class Miner extends Unit {
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.REFINERY, dir)) {
                     refinerySpots.add(rc.adjacentLocation(dir));
+                    tryBroadcastLocation(rc.adjacentLocation(dir), averageSend);
                 }
             }
         }
@@ -50,7 +51,7 @@ public strictfp class Miner extends Unit {
             if (state == 0) {
                 moveTarget = null;
             }
-            int location = getMiniMapLocation(processingMapLocation); 
+            int location = getMiniMapLocation(processingMapLocation);
             map[location][0] = rc.senseElevation(processingMapLocation);
             map[location][1] = rc.senseSoup(processingMapLocation);
         }
@@ -85,9 +86,15 @@ public strictfp class Miner extends Unit {
                 continue;
             }
             if (message[0] == 0) {
-                MapLocation loc = new MapLocation(message[2]%10000-message[2]%100, message[2]%100);
-
+                MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
+                if (message[3] > 0 && state == 0) {
+                    moveTarget = null;
+                }
                 map[getMiniMapLocation(loc)][1] = message[3];
+                //Someone build a refinery
+                if (message[4] != 0 && message[4]/10==0 && message[4]%10 ==3) {
+                    refinerySpots.add(loc);
+                }
             }
         }
     }
@@ -96,12 +103,10 @@ public strictfp class Miner extends Unit {
     @Override
     public void run() throws GameActionException {
 
-        System.out.println(state);
 
         minerUpdate();
 
         if (turn == 1) {
-            System.out.println("Finding HQ");
             for (MapLocation loc : getAdjacent()) {
                 if (rc.isLocationOccupied(loc) && rc.senseRobotAtLocation(loc).getType() == RobotType.HQ && rc.senseRobotAtLocation(loc).getTeam() == team) { 
                     hqLoc = loc;
@@ -113,7 +118,6 @@ public strictfp class Miner extends Unit {
         if (state == 0) {
             if (moveTarget == null) {
                 //Find a mining spot with BFS
-                System.out.println("Running BFS");
                 Queue<Integer> queue = new LinkedList<Integer>();
                 HashMap<Integer,Boolean> visited = new HashMap<Integer,Boolean>();
                 queue.add(getMiniMapLocation(myMapLocation));
