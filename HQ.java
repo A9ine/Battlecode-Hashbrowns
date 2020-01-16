@@ -26,7 +26,20 @@ public strictfp class HQ extends Building {
         update();
         findAndShoot();
         //First Turn
+        //Find nearby soup
         if (turn == 1) {
+            for (Direction dir : directions) {
+                tryBuild(RobotType.MINER, dir);
+            }
+            for (MapLocation loc : sensedMapLocations) {
+                if (rc.senseSoup(loc) > 0) {
+                    tryBroadcastLocation(loc, cheapSend);
+                }
+            }
+            tryBroadcastLocation(myMapLocation, averageSend);
+        }
+
+        if (turn < 100) {
             for (Direction dir : directions) {
                 tryBuild(RobotType.MINER, dir);
             }

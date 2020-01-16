@@ -16,7 +16,7 @@ public strictfp class Building extends Robot {
 
     @Override
     public void run() throws GameActionException {
-        
+        update();
     }
 
 }
