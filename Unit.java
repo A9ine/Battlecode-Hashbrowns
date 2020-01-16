@@ -24,16 +24,6 @@ public strictfp abstract class Unit extends Robot {
         state = 0;
     }
 
-
-    //Update
-    void sensoryUpdate() throws GameActionException {
-        for (MapLocation loc : sensedMapLocations) {
-            //TODO: Add check building and flooding code
-            map[loc.x][loc.y][0] = rc.senseElevation(loc);
-            map[loc.x][loc.y][1] = rc.senseSoup(loc);
-        }
-    } 
-
     //Navigation
 
     boolean canMoveWithoutSuicide(Direction dir) throws GameActionException {

@@ -31,7 +31,7 @@ public strictfp class HQ extends Building {
             for (Direction dir : directions) {
                 tryBuild(RobotType.MINER, dir);
             }
-            for (MapLocation loc : sensedMapLocations) {
+            for (MapLocation loc : rc.senseNearbySoup()) {
                 if (rc.senseSoup(loc) > 0) {
                     tryBroadcastLocation(loc, cheapSend);
                 }
@@ -39,7 +39,7 @@ public strictfp class HQ extends Building {
             tryBroadcastLocation(myMapLocation, averageSend);
         }
 
-        if (turn < 100) {
+        if (turn < 50) {
             for (Direction dir : directions) {
                 tryBuild(RobotType.MINER, dir);
             }

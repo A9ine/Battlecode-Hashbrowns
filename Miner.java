@@ -16,10 +16,27 @@ public strictfp class Miner extends Unit {
         super(rc);
     }
 
+    void minerUpdate() throws GameActionException {
+        update();
+        for (MapLocation processingMapLocation : rc.senseNearbySoup()) {
+            map[processingMapLocation.x][processingMapLocation.y][0] = rc.senseElevation(processingMapLocation);
+            map[processingMapLocation.x][processingMapLocation.y][1] = rc.senseSoup(processingMapLocation);
+            map[processingMapLocation.x][processingMapLocation.y][2] = 0;
+            if (rc.senseFlooding(processingMapLocation)) {
+                map[processingMapLocation.x][processingMapLocation.y][2] = -1;
+            }
+        }
+        minerCommunication();
+    }
+
     boolean tryMine() throws GameActionException {
         for (Direction dir : Direction.allDirections()){
             if (rc.isReady() && rc.canMineSoup(dir)) {
                 rc.mineSoup(dir);
+                if (rc.senseSoup(rc.adjacentLocation(dir))==0) {
+                    System.out.println("I finished mining a spot!");
+                    tryBroadcastLocation(rc.adjacentLocation(dir), cheapSend);
+                }
                 return true;
             }
         }
@@ -54,11 +71,12 @@ public strictfp class Miner extends Unit {
 
     @Override
     public void run() throws GameActionException {
-        update();
-        sensoryUpdate();
+
+        minerUpdate();
 
         if (turn == 1) {
-            for (MapLocation loc : sensedMapLocations) {
+            System.out.println("Finding HQ");
+            for (MapLocation loc : getAdjacent()) {
                 if (rc.isLocationOccupied(loc) && rc.senseRobotAtLocation(loc).getType() == RobotType.HQ && rc.senseRobotAtLocation(loc).getTeam() == team) { 
                     hqLoc = loc;
                     refinerySpots.add(loc);
@@ -68,12 +86,13 @@ public strictfp class Miner extends Unit {
 
         if (state == 0) {
             //If the robot is not ready, try running a BFS over the local map to find soup spots
+            System.out.println("Running BFS");
             Queue<MapLocation> queue = new LinkedList<MapLocation>();
             HashMap<MapLocation,Boolean> visited = new HashMap<MapLocation,Boolean>();
             queue.add(myMapLocation);
             while (queue.size() > 0) {
                 MapLocation current = queue.poll();
-                if (visited.containsKey(current)) {
+                if (visited.containsKey(current) || !rc.onTheMap(current)) {
                     continue;
                 }
                 visited.put(current,true);
@@ -99,10 +118,16 @@ public strictfp class Miner extends Unit {
 
         //Mining
         if (state == 51) {
-            System.out.printf("Currently carrying %d soup",rc.getSoupCarrying());
-            tryMine();
+            //System.out.printf("Currently carrying %d soup",rc.getSoupCarrying());
+            while(tryMine());
+            if (rc.canSenseLocation(moveTarget) && rc.senseSoup(moveTarget) == 0) {
+                state = 0;
+                moveTarget = null;
+                Clock.yield();
+            }
             if (rc.getSoupCarrying() == RobotType.MINER.soupLimit) {
                 state = 52;
+                Clock.yield();
             }
         }
 
@@ -113,15 +138,18 @@ public strictfp class Miner extends Unit {
             tryRefine();
             if (rc.getSoupCarrying() == 0) {
                 state = 0;
+                moveTarget = null;
+                Clock.yield();
             }
         }
-
-        if (bugNavigate(moveTarget)) {
-            if (!myMapLocation.equals(moveTarget)) {
-                //Can't get to the target
-                System.out.println("Can't get there!");
-                state = 0;
-                moveTarget = null;
+        if (rc.isReady()) {
+            if (moveTarget != null && bugNavigate(moveTarget)) {
+                if (!myMapLocation.equals(moveTarget)) {
+                    //Can't get to the target
+                    System.out.println("Can't get there!");
+                    state = 0;
+                    moveTarget = null;
+                }
             }
         }
 

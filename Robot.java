@@ -21,7 +21,7 @@ public strictfp abstract class Robot {
     int turn;
     MapLocation myMapLocation;
     int[][][] map;
-    ArrayList<MapLocation> sensedMapLocations;
+
     RobotInfo[] nearbyRobots;
     //Communication
     Transaction[] latestCommunication;
@@ -42,9 +42,8 @@ public strictfp abstract class Robot {
     void update() throws GameActionException {
         turn += 1;
         myMapLocation = rc.getLocation();
-        sensedMapLocations = getNear();
         //Update local map
-        for (MapLocation processingMapLocation : sensedMapLocations) {
+        for (MapLocation processingMapLocation : getAdjacent()) {
             map[processingMapLocation.x][processingMapLocation.y][0] = rc.senseElevation(processingMapLocation);
             map[processingMapLocation.x][processingMapLocation.y][1] = rc.senseSoup(processingMapLocation);
             map[processingMapLocation.x][processingMapLocation.y][2] = 0;
@@ -55,12 +54,15 @@ public strictfp abstract class Robot {
         //Update Robots
         nearbyRobots = rc.senseNearbyRobots();
         for (RobotInfo robot : nearbyRobots) {
-            if (Arrays.asList(BUILDINGS).contains(robot.type)) {
+            if (robot.type.isBuilding()) {
                 map[robot.getLocation().x][robot.getLocation().y][2] = 1;
             }
         }
         //Communication
-        latestCommunication = rc.getBlock(rc.getRoundNum()-1);
+        if (rc.getRoundNum() > 1) {
+            latestCommunication = rc.getBlock(rc.getRoundNum()-1);
+        }
+        
     }
 
     static Direction[] directions = {
@@ -154,18 +156,21 @@ public strictfp abstract class Robot {
     //Sensing Code
 
     //Return all map locations in sensing range
+    /* !!! Don't use this function, its too expensive */
     ArrayList<MapLocation> getNear() throws GameActionException {
+        System.out.println(Clock.getBytecodeNum());
         ArrayList<MapLocation> res = new ArrayList<MapLocation>();
-        MapLocation currentLoc = rc.getLocation();
+        System.out.println(Clock.getBytecodeNum());
         int maxDistance = (int)Math.floor(Math.sqrt(rc.getCurrentSensorRadiusSquared()));
-        for (int x = Math.max(currentLoc.x-maxDistance,0); x < Math.min(currentLoc.x + maxDistance,rc.getMapWidth() - 1);x++) {
-            for (int y = Math.max(currentLoc.x-maxDistance,0); y < Math.min(currentLoc.y + maxDistance,rc.getMapHeight() - 1);y++) {
-                MapLocation newLoc = new MapLocation(x,y);
-                if (rc.canSenseLocation(newLoc)) {
-                    res.add(newLoc);
+        System.out.println(Clock.getBytecodeNum());
+        for (int x = -maxDistance; x < maxDistance;x++) {
+            for (int y = -maxDistance; y < maxDistance; y++) {
+                if (rc.canSenseLocation(myMapLocation.translate(x,y))) {
+                    res.add(myMapLocation.translate(x,y));
                 }
             }
         }
+        System.out.println(Clock.getBytecodeNum());
         return res;
     }
 
