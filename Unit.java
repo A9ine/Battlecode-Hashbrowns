@@ -3,6 +3,8 @@ import battlecode.common.*;
 
 public strictfp abstract class Unit extends Robot {
 
+    //BIG TODO: Run a unit away in update if they are about to die
+
     
     MapLocation destination;
     int state;
@@ -59,7 +61,7 @@ public strictfp abstract class Unit extends Robot {
     boolean bugNavigate(MapLocation target) throws GameActionException {
 
         //Debugging
-        rc.setIndicatorLine(myMapLocation, target, 255, 0, 0);
+        //rc.setIndicatorLine(myMapLocation, target, 255, 0, 0);
 
         if (target != prevTarget) {
             isBugging = false;
@@ -151,12 +153,12 @@ public strictfp abstract class Unit extends Robot {
                             return bugNavigate(target);
                         } else {
                             System.out.println("There is no path there!");
-                            return false;
+                            return true;
                         }
                     }
                     if (targetDirection == obstacleDirection) {
                         System.out.printf("Well I'm stuck! %d\n",rc.getID());
-                        return true;
+                        return false;
                     }
                 }
                 if (clockwise) {

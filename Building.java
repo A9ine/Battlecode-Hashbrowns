@@ -7,13 +7,6 @@ public strictfp class Building extends Robot {
         super(rc);
     }
 
-    static boolean tryBuild(RobotType type, Direction dir) throws GameActionException {
-        if (rc.isReady() && rc.canBuildRobot(type, dir)) {
-            rc.buildRobot(type, dir);
-            return true;
-        } else return false;
-    }
-
     @Override
     public void run() throws GameActionException {
         update();

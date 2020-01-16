@@ -31,17 +31,20 @@ public strictfp class HQ extends Building {
             for (Direction dir : directions) {
                 tryBuild(RobotType.MINER, dir);
             }
-            for (MapLocation loc : rc.senseNearbySoup()) {
-                if (rc.senseSoup(loc) > 0) {
-                    tryBroadcastLocation(loc, cheapSend);
-                }
-            }
             tryBroadcastLocation(myMapLocation, averageSend);
         }
 
         if (turn < 50) {
-            for (Direction dir : directions) {
-                tryBuild(RobotType.MINER, dir);
+            if (rc.getTeamSoup()>270) { //In case an idiot decides to attack
+                for (Direction dir : directions) {
+                    tryBuild(RobotType.MINER, dir);
+                }
+            }
+        } else {
+            if (rc.getTeamSoup()>1500) {
+                for (Direction dir : directions) {
+                    tryBuild(RobotType.MINER, dir);
+                }
             }
         }
     }

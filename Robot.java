@@ -10,9 +10,12 @@ public strictfp abstract class Robot {
         Robot.rc = rc;
         team = rc.getTeam();
         turn = 0;
-        map = new int[rc.getMapWidth()][rc.getMapHeight()][3];
+        miniMapWidth = (rc.getMapWidth()+rc.getMapWidth()%4)/4; 
+        miniMapHeight = (rc.getMapHeight()+rc.getMapHeight()%4)/4;
+        map = new int[miniMapWidth*miniMapHeight][4];
+
         myType = rc.getType(); 
-        //[Elevation][Resources][Flooding = -1; Normal = 0; Building = 1; ]
+        //[Elevation][Resources][Enemy][Friendly]
     }
 
     protected static RobotController rc;
@@ -20,9 +23,13 @@ public strictfp abstract class Robot {
     /* Updated Information */
     int turn;
     MapLocation myMapLocation;
-    int[][][] map;
+    //Map is the big map split into 4 by 4 squares
+    int[][] map;
+    int miniMapWidth;
+    int miniMapHeight;
 
     RobotInfo[] nearbyRobots;
+    MapLocation[] nearbySoup;
     //Communication
     Transaction[] latestCommunication;
     //TODO: Implement dynamic costs
@@ -42,28 +49,28 @@ public strictfp abstract class Robot {
     void update() throws GameActionException {
         turn += 1;
         myMapLocation = rc.getLocation();
-        //Update local map
-        for (MapLocation processingMapLocation : getAdjacent()) {
-            map[processingMapLocation.x][processingMapLocation.y][0] = rc.senseElevation(processingMapLocation);
-            map[processingMapLocation.x][processingMapLocation.y][1] = rc.senseSoup(processingMapLocation);
-            map[processingMapLocation.x][processingMapLocation.y][2] = 0;
-            if (rc.senseFlooding(processingMapLocation)) {
-                map[processingMapLocation.x][processingMapLocation.y][2] = -1;
-            }
-        }
-        //Update Robots
+        //Update map
         nearbyRobots = rc.senseNearbyRobots();
-        for (RobotInfo robot : nearbyRobots) {
-            if (robot.type.isBuilding()) {
-                map[robot.getLocation().x][robot.getLocation().y][2] = 1;
+        nearbySoup = rc.senseNearbySoup();
+        for (MapLocation loc : nearbySoup) {
+            if (map[getMiniMapLocation(loc)][1] == 0) {
+                tryBroadcastLocation(loc, cheapSend);
             }
+            map[getMiniMapLocation(loc)][1] = rc.senseSoup(loc);
         }
+        
+        if (nearbySoup.length == 0) {
+            map[getMiniMapLocation(myMapLocation)][1] = 0;
+        }
+        
         //Communication
         if (rc.getRoundNum() > 1) {
             latestCommunication = rc.getBlock(rc.getRoundNum()-1);
         }
         
     }
+
+    //Navigation and minimap
 
     static Direction[] directions = {
         Direction.NORTH,
@@ -75,15 +82,18 @@ public strictfp abstract class Robot {
         Direction.WEST,
         Direction.NORTHWEST
     };
-    static RobotType[] BUILDINGS = new RobotType[] {
-        RobotType.DESIGN_SCHOOL,
-        RobotType.HQ,
-        RobotType.NET_GUN,
-        RobotType.REFINERY,
-        RobotType.VAPORATOR,
-        RobotType.FULFILLMENT_CENTER
-    };
 
+    int getMiniMapLocation (MapLocation loc) {
+        return loc.x/4 + loc.y/4*(miniMapWidth);
+    }
+
+    boolean hasSoup (int miniMapLoc) {
+        return map[miniMapLoc][1]>0?true:false;
+    }
+
+    MapLocation locationInMiniMap(int miniMapLoc) {
+        return new MapLocation((miniMapLoc%(miniMapWidth))*4+2,miniMapLoc/miniMapWidth*4+2);
+    }
 
     //Communication Code
 
@@ -182,6 +192,15 @@ public strictfp abstract class Robot {
             }
         }
         return res;
+    }
+
+    //Helper code
+
+    static boolean tryBuild(RobotType type, Direction dir) throws GameActionException {
+        if (rc.isReady() && rc.canBuildRobot(type, dir)) {
+            rc.buildRobot(type, dir);
+            return true;
+        } else return false;
     }
 
 

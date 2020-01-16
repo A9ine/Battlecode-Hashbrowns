@@ -35,6 +35,8 @@ public strictfp class RobotPlayer {
             } catch (Exception e) {
                 System.out.println(rc.getType() + " Exception");
                 e.printStackTrace();
+                //TODO: DELETE THIS LINE BEFORE THE COMPETITION
+                rc.resign();
             }
         }
     }

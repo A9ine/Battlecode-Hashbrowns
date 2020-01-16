@@ -16,15 +16,43 @@ public strictfp class Miner extends Unit {
         super(rc);
     }
 
+
+    //Refinery stuff
+    MapLocation findClosestRefinery() {
+        int distance = Integer.MAX_VALUE;
+        MapLocation res = hqLoc;
+        for (MapLocation refinery : refinerySpots) {
+            if (refinery.distanceSquaredTo(myMapLocation) < distance) {
+                distance = refinery.distanceSquaredTo(myMapLocation);
+                res = refinery; 
+            }
+        }
+        return res;
+    }
+
+    //The first function called when started to refine
+    void goRefine() throws GameActionException {
+        MapLocation closestRefinery = findClosestRefinery();
+        if (closestRefinery.distanceSquaredTo(myMapLocation)>225) {
+            for (Direction dir : directions) {
+                if(tryBuild(RobotType.REFINERY, dir)) {
+                    refinerySpots.add(rc.adjacentLocation(dir));
+                }
+            }
+        }
+        state = 52;
+    }
+
+    //General stuff
     void minerUpdate() throws GameActionException {
         update();
         for (MapLocation processingMapLocation : rc.senseNearbySoup()) {
-            map[processingMapLocation.x][processingMapLocation.y][0] = rc.senseElevation(processingMapLocation);
-            map[processingMapLocation.x][processingMapLocation.y][1] = rc.senseSoup(processingMapLocation);
-            map[processingMapLocation.x][processingMapLocation.y][2] = 0;
-            if (rc.senseFlooding(processingMapLocation)) {
-                map[processingMapLocation.x][processingMapLocation.y][2] = -1;
+            if (state == 0) {
+                moveTarget = null;
             }
+            int location = getMiniMapLocation(processingMapLocation); 
+            map[location][0] = rc.senseElevation(processingMapLocation);
+            map[location][1] = rc.senseSoup(processingMapLocation);
         }
         minerCommunication();
     }
@@ -33,10 +61,7 @@ public strictfp class Miner extends Unit {
         for (Direction dir : Direction.allDirections()){
             if (rc.isReady() && rc.canMineSoup(dir)) {
                 rc.mineSoup(dir);
-                if (rc.senseSoup(rc.adjacentLocation(dir))==0) {
-                    System.out.println("I finished mining a spot!");
-                    tryBroadcastLocation(rc.adjacentLocation(dir), cheapSend);
-                }
+                //TODO: Send message once sector finished mining
                 return true;
             }
         }
@@ -61,9 +86,8 @@ public strictfp class Miner extends Unit {
             }
             if (message[0] == 0) {
                 MapLocation loc = new MapLocation(message[2]%10000-message[2]%100, message[2]%100);
-                map[loc.x][loc.y][0] = message[2];
-                map[loc.x][loc.y][1] = message[3];
-                map[loc.x][loc.y][2] = message[2]-message[2]%10000-message[2]%100 == 1 ? -1 : 0;
+
+                map[getMiniMapLocation(loc)][1] = message[3];
             }
         }
     }
@@ -71,6 +95,8 @@ public strictfp class Miner extends Unit {
 
     @Override
     public void run() throws GameActionException {
+
+        System.out.println(state);
 
         minerUpdate();
 
@@ -85,48 +111,69 @@ public strictfp class Miner extends Unit {
         }
 
         if (state == 0) {
-            //If the robot is not ready, try running a BFS over the local map to find soup spots
-            System.out.println("Running BFS");
-            Queue<MapLocation> queue = new LinkedList<MapLocation>();
-            HashMap<MapLocation,Boolean> visited = new HashMap<MapLocation,Boolean>();
-            queue.add(myMapLocation);
-            while (queue.size() > 0) {
-                MapLocation current = queue.poll();
-                if (visited.containsKey(current) || !rc.onTheMap(current)) {
-                    continue;
-                }
-                visited.put(current,true);
-                if (map[current.x][current.y][1] > 0) {
-                    moveTarget = current;
-                    state = 51;
-                    break;
-                }
-                if (current.distanceSquaredTo(myMapLocation) > 400) {
-                    continue;
-                }
-                for (Direction dir : directions) {
-                    queue.add(current.add(dir));
+            if (moveTarget == null) {
+                //Find a mining spot with BFS
+                System.out.println("Running BFS");
+                Queue<Integer> queue = new LinkedList<Integer>();
+                HashMap<Integer,Boolean> visited = new HashMap<Integer,Boolean>();
+                queue.add(getMiniMapLocation(myMapLocation));
+                while (queue.size() > 0) {
+                    Integer current = queue.poll();
+                    if (visited.containsKey(current)) {
+                        continue;
+                    }
+                    visited.put(current,true);
+                    if (map[current][1] > 0) {
+                        moveTarget = locationInMiniMap(current);
+                        state = 51;
+                        break;
+                    }
+                    //Add nearby sectors
+                    int x = current%miniMapWidth;
+                    int y = current/miniMapWidth;
+                    if (x > 0) {
+                        queue.add((x-1)+y*miniMapWidth);
+                    }
+                    if (x < miniMapWidth-1) {
+                        queue.add((x+1)+y*miniMapWidth);
+                    }
+                    if (y > 0) {
+                        queue.add(x+(y-1)*miniMapWidth);
+                    }
+                    if (y < miniMapHeight-1) {
+                        queue.add(x+(y+1)*miniMapWidth);
+                    }
                 }
             }
+        }
+            
+        if (state == 0 && moveTarget == null) {
+            //Nothing must have been found. Go to a random location and explore
+            moveTarget = randomLocation(); 
 
-            if (state == 0 && moveTarget == null) {
-                //Nothing must have been found. Go to a random location and explore
-                moveTarget = randomLocation();
-            }
-
+        } else if (state == 0 && myMapLocation.equals(moveTarget)) {
+            moveTarget = randomLocation();
         }
 
         //Mining
         if (state == 51) {
             //System.out.printf("Currently carrying %d soup",rc.getSoupCarrying());
+            //So many edge cases I want to kill myself
             while(tryMine());
-            if (rc.canSenseLocation(moveTarget) && rc.senseSoup(moveTarget) == 0) {
-                state = 0;
-                moveTarget = null;
+            if (rc.getSoupCarrying() == RobotType.MINER.soupLimit) {
+                goRefine();
                 Clock.yield();
             }
-            if (rc.getSoupCarrying() == RobotType.MINER.soupLimit) {
-                state = 52;
+            if (rc.canSenseLocation(moveTarget) && rc.senseSoup(moveTarget)==0 && nearbySoup.length > 0) {
+                moveTarget = nearbySoup[0];
+            }
+            if (getMiniMapLocation(myMapLocation) == getMiniMapLocation(moveTarget) && nearbySoup.length==0) {
+                if (rc.getSoupCarrying()>0) {
+                    goRefine();
+                } else {
+                    state = 0;
+                    moveTarget = null;
+                }
                 Clock.yield();
             }
         }
@@ -134,7 +181,8 @@ public strictfp class Miner extends Unit {
         //Refining
         if (state == 52) {
             //TODO: Find nearest refinery
-            moveTarget = refinerySpots.get(0);
+            moveTarget = findClosestRefinery();
+
             tryRefine();
             if (rc.getSoupCarrying() == 0) {
                 state = 0;
@@ -145,10 +193,13 @@ public strictfp class Miner extends Unit {
         if (rc.isReady()) {
             if (moveTarget != null && bugNavigate(moveTarget)) {
                 if (!myMapLocation.equals(moveTarget)) {
+                    //Not sure if this should be added
+                    map[getMiniMapLocation(moveTarget)][1] = 0;
                     //Can't get to the target
                     System.out.println("Can't get there!");
                     state = 0;
-                    moveTarget = null;
+                    moveTarget = randomLocation(); 
+                    Clock.yield();
                 }
             }
         }
