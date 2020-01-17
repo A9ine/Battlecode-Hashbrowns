@@ -21,6 +21,7 @@ public strictfp class Miner extends Unit {
 
     //Building stuff
     RobotType buildTarget;
+    MapLocation buildLocation;
     int buildOrderID;
 
     //Refinery stuff
@@ -116,12 +117,19 @@ public strictfp class Miner extends Unit {
                 MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
                 if (loc.distanceSquaredTo(myMapLocation) < 150) {
                     state = 53;
+                    buildLocation = loc;
+                    moveTarget = loc;
                     buildTarget = getRobotTypeFromID(message[4]);
                     buildOrderID = message[5];
-
                 }
-                
             }
+            if (message[0] == 5) {
+                if (message[5] == buildOrderID) {
+                    state = 0;
+                    buildOrderID = 0;
+                }
+            }
+            
         }
     }
 
@@ -129,8 +137,9 @@ public strictfp class Miner extends Unit {
     @Override
     public void run() throws GameActionException {
 
-
         minerUpdate();
+
+        System.out.println(state);
 
         if (turn == 1) {
             for (MapLocation loc : getAdjacent()) {
@@ -237,6 +246,33 @@ public strictfp class Miner extends Unit {
                 state = 0;
                 moveTarget = null;
                 Clock.yield();
+            }
+        }
+
+        //Building on orders
+        //TODO: Do something so that miners only go to build the thing when they have enough money in the bank, else continue mining
+        if (state == 53) {
+            //TODO: Shitty code and buggy logic, someone improve
+            System.out.println(buildLocation);
+            if (myMapLocation.equals(buildLocation)) {
+                for  (Direction dir : directions) {
+                    if (canMoveWithoutSuicide(dir)) {
+                        rc.move(dir);
+                    }
+                }
+            }
+            if (getAdjacent().contains(buildLocation)) {
+                moveTarget = myMapLocation;
+            }
+
+            for  (Direction dir : directions) {
+                if (rc.adjacentLocation(dir).equals(buildLocation)) {
+                    if(tryBuild(buildTarget, dir)) {
+                        tryBroadcastSucess(buildOrderID, averageSend);
+                        state = 0;
+                        moveTarget = null;
+                    };
+                }
             }
         }
 

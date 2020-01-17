@@ -69,19 +69,21 @@ public strictfp abstract class Robot {
         //Communication
         if (rc.getRoundNum() > 1) {
             latestCommunication = rc.getBlock(rc.getRoundNum()-1);
+
+            for (Transaction trans : latestCommunication) {
+                int[] message = getInformation(trans);
+                if (message[6] != 69420) {
+                    continue;
+                }
+                if (message[0] == 0) {
+                    MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
+                    map[getMiniMapLocation(loc)][1] = message[3];
+                    
+                }
+            }
+            
         }
 
-        for (Transaction trans : latestCommunication) {
-            int[] message = getInformation(trans);
-            if (message[6] != 69420) {
-                continue;
-            }
-            if (message[0] == 0) {
-                MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
-                map[getMiniMapLocation(loc)][1] = message[3];
-                
-            }
-        }
     }
 
     //Navigation and minimap
@@ -121,12 +123,12 @@ public strictfp abstract class Robot {
                 // 2 --> Wall
                 // 3 --> Attack
                 // 4 --> Transport
-                // 5 --> Finished Build
+                // 5 --> Sucess
             //[flooded + x + y]
             //[Elevation]
             //[Soup]
             //[Robot Data (Team + Type)]
-            //[Extra Data]
+            //[Order ID]
 
     private boolean secureSend(int[] message, int cost) throws GameActionException {
         //TODO: Implement better encryption
@@ -134,7 +136,7 @@ public strictfp abstract class Robot {
     }
 
     int getRobotTypeID(RobotType type) {
-        int roboType = 0;
+        int robotype = 0;
         switch (type) {
             case HQ:                 robotype=1;                 break;
             case MINER:              robotype=2;                 break;
@@ -146,12 +148,12 @@ public strictfp abstract class Robot {
             case DELIVERY_DRONE:     robotype=8;                 break;
             case NET_GUN:            robotype=9;                 break;
         }
-        return roboType;
+        return robotype;
     }
 
-    int getRobotTypeFromID(int ID) {
-        RobotType roboType;
-        switch (type) {
+    RobotType getRobotTypeFromID(int ID) {
+        RobotType robotype = null;
+        switch (ID) {
             case 1:                 robotype=RobotType.HQ;                           break;
             case 2:                 robotype=RobotType.MINER;                        break;
             case 3:                 robotype=RobotType.REFINERY;                     break;
@@ -162,7 +164,7 @@ public strictfp abstract class Robot {
             case 8:                 robotype=RobotType.DELIVERY_DRONE;               break;
             case 9:                 robotype=RobotType.NET_GUN;                      break;
         }
-        return roboType;
+        return robotype;
     }
 
     private boolean trySendBlockchain(int[] message, int cost) throws GameActionException {
@@ -198,11 +200,10 @@ public strictfp abstract class Robot {
             0
         }, cost);
 
-
     }
 
     boolean tryBroadcastBuild(MapLocation loc, RobotType type, int orderID, int cost) throws GameActionException {
-        //System.out.println("Trying to send a building");
+        System.out.println("Trying to send a building");
         int robotype = robotype = getRobotTypeID(type);
         
         return secureSend(new int[] {
@@ -213,22 +214,24 @@ public strictfp abstract class Robot {
             robotype, 
             orderID
         }, cost);
-
     }
 
+    boolean tryBroadcastSucess(int orderID, int cost) throws GameActionException {
+        
+        return secureSend(new int[] {
+            5,
+            0,
+            0,
+            0,
+            0, 
+            orderID
+        }, cost);
+
+    }
+    
+
     int[] getInformation (Transaction trans) {
-            //[Action] 
-                // 0 --> Data
-                // 1 --> Build
-                // 2 --> Wall
-                // 3 --> Attack
-                // 4 --> Transport
-            //[flooded + x + y]
-            //[Elevation]
-            //[Soup]
-            //[Robot Data (Team + Type)]
-            //[Extra Data]
-        //TODO: Bit compression comprehension
+
         return 	trans.getMessage();
         
     }

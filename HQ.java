@@ -47,6 +47,7 @@ public strictfp class HQ extends Building {
 
         //Start building the base
         if (turn == 50) {
+            System.out.println(turn=50);
             //Make sure there is a miner nearby
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.MINER, dir)) {
@@ -56,7 +57,7 @@ public strictfp class HQ extends Building {
             //If someone rushes us
             //We are fucked
             //TODO: Unfuck us with defense code
-            MapLocation target;
+            MapLocation target = null;
             while (target == null) {
                 for (MapLocation potential : getAdjacent()) {
                     if (rc.onTheMap(potential)) {
@@ -65,7 +66,7 @@ public strictfp class HQ extends Building {
                     }
                 }
             }
-            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, fastSend));
+            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, turn + KEY, fastSend));
         }
         
         if  (turn < 10) {
@@ -87,7 +88,7 @@ public strictfp class HQ extends Building {
 
         else {  
             System.out.println(rc.getTeamSoup());
-            if (rc.getTeamSoup()>minerNum * 70) {
+            if (rc.getTeamSoup()>minerNum * 150) {
                 for (Direction dir : directions) {
                     if(tryBuild(RobotType.MINER, dir)) {
                         minerNum += 1;
