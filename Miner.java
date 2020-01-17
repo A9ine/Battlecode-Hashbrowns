@@ -9,64 +9,45 @@ import battlecode.common.*;
 
 public strictfp class Miner extends Unit {
 
-    ArrayList<MapLocation> refinerySpots = new ArrayList<MapLocation>();
-    MapLocation moveTarget;
-
     Miner(RobotController rc) throws GameActionException {
         super(rc);
     }
 
+    //General
+    MapLocation moveTarget;
+
+    //Constants
+    final int REFINERY_DISTANCE = 250;
+
+    //Building stuff
+    RobotType buildTarget;
+    int buildOrderID;
 
     //Refinery stuff
-    MapLocation findClosestRefinery() {
+    ArrayList<MapLocation> refinerySpots = new ArrayList<MapLocation>();
+    boolean wantToBuildRefinery = false;
+    MapLocation leftMineLocation;
+
+    MapLocation findClosestRefinery(MapLocation loc) {
         int distance = Integer.MAX_VALUE;
         MapLocation res = hqLoc;
         for (MapLocation refinery : refinerySpots) {
-            if (refinery.distanceSquaredTo(myMapLocation) < distance) {
-                distance = refinery.distanceSquaredTo(myMapLocation);
+            if (refinery.distanceSquaredTo(loc) < distance) {
+                distance = refinery.distanceSquaredTo(loc);
                 res = refinery; 
             }
         }
         return res;
     }
 
-    //The first function called when started to refine
+    //Refining stuff
     void goRefine() throws GameActionException {
-        MapLocation closestRefinery = findClosestRefinery();
-        if (closestRefinery.distanceSquaredTo(myMapLocation)>225) {
-            for (Direction dir : directions) {
-                if(tryBuild(RobotType.REFINERY, dir)) {
-                    refinerySpots.add(rc.adjacentLocation(dir));
-                    tryBroadcastLocation(rc.adjacentLocation(dir), averageSend);
-                }
-            }
+        MapLocation closestRefinery = findClosestRefinery(myMapLocation);
+        leftMineLocation = myMapLocation;
+        if (closestRefinery.distanceSquaredTo(myMapLocation)>REFINERY_DISTANCE) {
+            wantToBuildRefinery = true;
         }
         state = 52;
-    }
-
-    //General stuff
-    void minerUpdate() throws GameActionException {
-        update();
-        for (MapLocation processingMapLocation : rc.senseNearbySoup()) {
-            if (state == 0) {
-                moveTarget = null;
-            }
-            int location = getMiniMapLocation(processingMapLocation);
-            map[location][0] = rc.senseElevation(processingMapLocation);
-            map[location][1] = rc.senseSoup(processingMapLocation);
-        }
-        minerCommunication();
-    }
-
-    boolean tryMine() throws GameActionException {
-        for (Direction dir : Direction.allDirections()){
-            if (rc.isReady() && rc.canMineSoup(dir)) {
-                rc.mineSoup(dir);
-                //TODO: Send message once sector finished mining
-                return true;
-            }
-        }
-        return false;
     }
 
     boolean tryRefine() throws GameActionException {
@@ -79,22 +60,67 @@ public strictfp class Miner extends Unit {
         return false;
     }
 
+    //Mining Stuff
+    boolean tryMine() throws GameActionException {
+        for (Direction dir : Direction.allDirections()){
+            if (rc.isReady() && rc.canMineSoup(dir)) {
+                rc.mineSoup(dir);
+                //TODO: Send message once sector finished mining
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //General stuff
+    void minerUpdate() throws GameActionException {
+        update();
+        for (MapLocation processingMapLocation : nearbySoup) {
+            if (state == 0) {
+                moveTarget = null;
+            }
+            int location = getMiniMapLocation(processingMapLocation);
+            map[location][0] = rc.senseElevation(processingMapLocation);
+            map[location][1] = rc.senseSoup(processingMapLocation);
+        }
+
+        for (RobotInfo robot : nearbyRobots) {
+            if (robot.getType() == RobotType.REFINERY && robot.getTeam() == team && !refinerySpots.contains(robot.getLocation())) {
+                refinerySpots.add(robot.getLocation());
+            }
+        }
+        minerCommunication();
+    }
+
     void minerCommunication() {
         for (Transaction trans : latestCommunication) {
             int[] message = getInformation(trans);
             if (message[6] != 69420) {
                 continue;
             }
+            //Potential mining data
             if (message[0] == 0) {
                 MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
                 if (message[3] > 0 && state == 0) {
                     moveTarget = null;
                 }
-                map[getMiniMapLocation(loc)][1] = message[3];
-                //Someone build a refinery
+                //Someone built a refinery
                 if (message[4] != 0 && message[4]/10==0 && message[4]%10 ==3) {
-                    refinerySpots.add(loc);
+                    if (!refinerySpots.contains(loc)) {
+                        refinerySpots.add(loc);
+                    }
                 }
+            }
+            //Building data
+            if (message[0] == 1) {
+                MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
+                if (loc.distanceSquaredTo(myMapLocation) < 150) {
+                    state = 53;
+                    buildTarget = getRobotTypeFromID(message[4]);
+                    buildOrderID = message[5];
+
+                }
+                
             }
         }
     }
@@ -115,6 +141,8 @@ public strictfp class Miner extends Unit {
             }
         }
 
+
+        //Doing nothing
         if (state == 0) {
             if (moveTarget == null) {
                 //Find a mining spot with BFS
@@ -185,15 +213,35 @@ public strictfp class Miner extends Unit {
         //Refining
         if (state == 52) {
             //TODO: Find nearest refinery
-            moveTarget = findClosestRefinery();
+            moveTarget = findClosestRefinery(myMapLocation);
+            if (myMapLocation.distanceSquaredTo(moveTarget)>400 && nearbySoup.length>0) {
+                wantToBuildRefinery = true;
+                leftMineLocation = myMapLocation;
+            }
+            if (leftMineLocation.distanceSquaredTo(findClosestRefinery(leftMineLocation)) < REFINERY_DISTANCE) {
+                wantToBuildRefinery = false;
+            }
+            if (wantToBuildRefinery) {
+                for (Direction dir : directions) {
+                    if (tryBuild(RobotType.REFINERY, dir)) {
+                        wantToBuildRefinery = false;
+                        tryBroadcastLocation(rc.adjacentLocation(dir), fastSend);
+                        refinerySpots.add(rc.adjacentLocation(dir));
+                    }
+                }
+            }
 
             tryRefine();
             if (rc.getSoupCarrying() == 0) {
+                wantToBuildRefinery = false;
                 state = 0;
                 moveTarget = null;
                 Clock.yield();
             }
         }
+
+        //Movement
+
         if (rc.isReady()) {
             if (moveTarget != null && bugNavigate(moveTarget)) {
                 if (!myMapLocation.equals(moveTarget)) {

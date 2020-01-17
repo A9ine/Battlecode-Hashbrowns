@@ -9,11 +9,14 @@ public strictfp abstract class Robot {
     Robot(RobotController rc) throws GameActionException {
         Robot.rc = rc;
         team = rc.getTeam();
+        // So I can run the robots against each other
+        if (team == Team.B) {
+            KEY += 1;
+        }
         turn = 0;
         miniMapWidth = (rc.getMapWidth()+rc.getMapWidth()%4)/4; 
         miniMapHeight = (rc.getMapHeight()+rc.getMapHeight()%4)/4;
         map = new int[miniMapWidth*(miniMapHeight+1)][4];
-
         myType = rc.getType(); 
         //[Elevation][Resources][Enemy][Friendly]
     }
@@ -67,7 +70,18 @@ public strictfp abstract class Robot {
         if (rc.getRoundNum() > 1) {
             latestCommunication = rc.getBlock(rc.getRoundNum()-1);
         }
-        
+
+        for (Transaction trans : latestCommunication) {
+            int[] message = getInformation(trans);
+            if (message[6] != 69420) {
+                continue;
+            }
+            if (message[0] == 0) {
+                MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
+                map[getMiniMapLocation(loc)][1] = message[3];
+                
+            }
+        }
     }
 
     //Navigation and minimap
@@ -107,6 +121,7 @@ public strictfp abstract class Robot {
                 // 2 --> Wall
                 // 3 --> Attack
                 // 4 --> Transport
+                // 5 --> Finished Build
             //[flooded + x + y]
             //[Elevation]
             //[Soup]
@@ -118,6 +133,38 @@ public strictfp abstract class Robot {
         return(trySendBlockchain(new int[] {message[0],message[1],message[2],message[3],message[4],message[5],KEY}, cost));
     }
 
+    int getRobotTypeID(RobotType type) {
+        int roboType = 0;
+        switch (type) {
+            case HQ:                 robotype=1;                 break;
+            case MINER:              robotype=2;                 break;
+            case REFINERY:           robotype=3;                 break;
+            case VAPORATOR:          robotype=4;                 break;
+            case DESIGN_SCHOOL:      robotype=5;                 break;
+            case FULFILLMENT_CENTER: robotype=6;                 break;
+            case LANDSCAPER:         robotype=7;                 break;
+            case DELIVERY_DRONE:     robotype=8;                 break;
+            case NET_GUN:            robotype=9;                 break;
+        }
+        return roboType;
+    }
+
+    int getRobotTypeFromID(int ID) {
+        RobotType roboType;
+        switch (type) {
+            case 1:                 robotype=RobotType.HQ;                           break;
+            case 2:                 robotype=RobotType.MINER;                        break;
+            case 3:                 robotype=RobotType.REFINERY;                     break;
+            case 4:                 robotype=RobotType.VAPORATOR;                    break;
+            case 5:                 robotype=RobotType.DESIGN_SCHOOL;                break;
+            case 6:                 robotype=RobotType.FULFILLMENT_CENTER;           break;
+            case 7:                 robotype=RobotType.LANDSCAPER;                   break;
+            case 8:                 robotype=RobotType.DELIVERY_DRONE;               break;
+            case 9:                 robotype=RobotType.NET_GUN;                      break;
+        }
+        return roboType;
+    }
+
     private boolean trySendBlockchain(int[] message, int cost) throws GameActionException {
         if (rc.canSubmitTransaction(message, cost)) {
             rc.submitTransaction(message, cost);
@@ -127,7 +174,10 @@ public strictfp abstract class Robot {
     }
 
     boolean tryBroadcastLocation(MapLocation loc, int cost) throws GameActionException {
-        System.out.println("Trying to send a location");
+        if (!rc.canSenseLocation(loc)) {
+            return false;
+        }
+        //System.out.println("Trying to send a location");
         int soup = rc.senseSoup(loc);
         int elevation = rc.senseElevation(loc);
         int flooded = rc.senseFlooding(loc)?1:0;
@@ -136,20 +186,10 @@ public strictfp abstract class Robot {
         int robotype = 0;
         if (robot!=null) {
             roboteam = robot.getTeam()==team?0:1;
-            switch (robot.getType()) {
-                case HQ:                 robotype=1;                 break;
-                case MINER:              robotype=2;                 break;
-                case REFINERY:           robotype=3;                 break;
-                case VAPORATOR:          robotype=4;                 break;
-                case DESIGN_SCHOOL:      robotype=5;                 break;
-                case FULFILLMENT_CENTER: robotype=6;                 break;
-                case LANDSCAPER:         robotype=7;                 break;
-                case DELIVERY_DRONE:     robotype=8;                 break;
-                case NET_GUN:            robotype=9;                 break;
-            }
+            robotype = getRobotTypeID(robot.getType());
         }
 
-        secureSend(new int[] {
+        return secureSend(new int[] {
             0,
             flooded * 10000 + loc.x* 100 + loc.y,
             elevation,
@@ -157,7 +197,22 @@ public strictfp abstract class Robot {
             roboteam*10+robotype, 
             0
         }, cost);
-        return true;
+
+
+    }
+
+    boolean tryBroadcastBuild(MapLocation loc, RobotType type, int orderID, int cost) throws GameActionException {
+        //System.out.println("Trying to send a building");
+        int robotype = robotype = getRobotTypeID(type);
+        
+        return secureSend(new int[] {
+            1,
+            loc.x* 100 + loc.y,
+            0,
+            0,
+            robotype, 
+            orderID
+        }, cost);
 
     }
 

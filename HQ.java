@@ -2,7 +2,13 @@ package potato;
 import battlecode.common.*;
 
 public strictfp class HQ extends Building {
+
     Team enemy;
+    int minerNum = 0;
+    int designSchoolNum = 0;
+    int fulfillmentCenterNum = 0;
+    int orderID = 0;
+    boolean stageOne = false; //Turn 50 or enemy rush
 
     HQ(RobotController rc) throws GameActionException {
         super(rc);
@@ -21,7 +27,6 @@ public strictfp class HQ extends Building {
                    Clock.yield();
                }
            }
-               
         }
     }
 
@@ -40,16 +45,53 @@ public strictfp class HQ extends Building {
             tryBroadcastLocation(myMapLocation, averageSend);
         }
 
-        if (turn < 50) {
-            if (rc.getTeamSoup()>100) { //In case an idiot decides to attack
-                for (Direction dir : directions) {
-                    tryBuild(RobotType.MINER, dir);
+        //Start building the base
+        if (turn == 50) {
+            //Make sure there is a miner nearby
+            for (Direction dir : directions) {
+                if(tryBuild(RobotType.MINER, dir)) {
+                    minerNum += 1;
+                };
+            }
+            //If someone rushes us
+            //We are fucked
+            //TODO: Unfuck us with defense code
+            MapLocation target;
+            while (target == null) {
+                for (MapLocation potential : getAdjacent()) {
+                    if (rc.onTheMap(potential)) {
+                        target = potential;
+                        break;
+                    }
                 }
             }
-        } else {
-            if (rc.getTeamSoup()>1500) {
+            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, fastSend));
+        }
+        
+        if  (turn < 10) {
+            for (Direction dir : directions) {
+                if(tryBuild(RobotType.MINER, dir)) {
+                    minerNum += 1;
+                };
+            }
+        }
+        else if (turn < 50) {
+            if (rc.getTeamSoup()>140) { //In case an idiot decides to attack
                 for (Direction dir : directions) {
-                    tryBuild(RobotType.MINER, dir);
+                    if(tryBuild(RobotType.MINER, dir)) {
+                        minerNum += 1;
+                    };
+                }
+            }
+        }
+
+        else {  
+            System.out.println(rc.getTeamSoup());
+            if (rc.getTeamSoup()>minerNum * 70) {
+                for (Direction dir : directions) {
+                    if(tryBuild(RobotType.MINER, dir)) {
+                        minerNum += 1;
+                    };
                 }
             }
         }
