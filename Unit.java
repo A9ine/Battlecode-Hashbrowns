@@ -19,6 +19,13 @@ public strictfp abstract class Unit extends Robot {
     51 --> Mining
     52 --> Refining
     53 --> Building
+
+    Landscaper
+    60 --> Repairing
+    61 --> HQ Wall
+    62 --> Latticing
+    63 --> Path building
+    64 --> Offensive
     */
 
     Unit(RobotController rc) throws GameActionException {
@@ -58,6 +65,8 @@ public strictfp abstract class Unit extends Robot {
     MapLocation obstacle;
     double gradient;
 
+    //TODO: Someone do tangent bugging
+    //TODO: Stop the spiral of bugging with multiple units
     boolean bugNavigate(MapLocation target) throws GameActionException {
 
         //Debugging
@@ -118,6 +127,7 @@ public strictfp abstract class Unit extends Robot {
                 if (startBugLocation.equals(myMapLocation)) {
                     count += 1;
                     if (count >= 3) {
+                        //Move in random direction
                         System.out.println("I don't think I can get there!");
                         return true;
                     }

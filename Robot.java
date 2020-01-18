@@ -72,7 +72,7 @@ public strictfp abstract class Robot {
 
             for (Transaction trans : latestCommunication) {
                 int[] message = getInformation(trans);
-                if (message[6] != 69420) {
+                if (message[6] != KEY) {
                     continue;
                 }
                 if (message[0] == 0) {

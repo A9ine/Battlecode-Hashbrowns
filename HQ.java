@@ -60,7 +60,7 @@ public strictfp class HQ extends Building {
             MapLocation target = null;
             while (target == null) {
                 for (MapLocation potential : getAdjacent()) {
-                    if (rc.onTheMap(potential)) {
+                    if (rc.onTheMap(potential)  && 	!rc.senseFlooding(potential)) {
                         target = potential;
                         break;
                     }

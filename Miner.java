@@ -20,6 +20,7 @@ public strictfp class Miner extends Unit {
     final int REFINERY_DISTANCE = 250;
 
     //Building stuff
+    //TODO: Make a build queue
     RobotType buildTarget;
     MapLocation buildLocation;
     int buildOrderID;
@@ -96,7 +97,7 @@ public strictfp class Miner extends Unit {
     void minerCommunication() {
         for (Transaction trans : latestCommunication) {
             int[] message = getInformation(trans);
-            if (message[6] != 69420) {
+            if (message[6] != KEY) {
                 continue;
             }
             //Potential mining data
@@ -118,7 +119,6 @@ public strictfp class Miner extends Unit {
                 if (loc.distanceSquaredTo(myMapLocation) < 150) {
                     state = 53;
                     buildLocation = loc;
-                    moveTarget = loc;
                     buildTarget = getRobotTypeFromID(message[4]);
                     buildOrderID = message[5];
                 }
@@ -136,10 +136,7 @@ public strictfp class Miner extends Unit {
 
     @Override
     public void run() throws GameActionException {
-
         minerUpdate();
-
-        System.out.println(state);
 
         if (turn == 1) {
             for (MapLocation loc : getAdjacent()) {
@@ -152,7 +149,7 @@ public strictfp class Miner extends Unit {
 
 
         //Doing nothing
-        if (state == 0) {
+        if (state == 0 || (state==53 && rc.getTeamSoup() < buildTarget.cost+30)) {
             if (moveTarget == null) {
                 //Find a mining spot with BFS
                 Queue<Integer> queue = new LinkedList<Integer>();
@@ -166,6 +163,9 @@ public strictfp class Miner extends Unit {
                     visited.put(current,true);
                     if (map[current][1] > 0) {
                         moveTarget = locationInMiniMap(current);
+                        if (state != 53) {
+                            state = 51;
+                        }
                         state = 51;
                         break;
                     }
@@ -197,7 +197,7 @@ public strictfp class Miner extends Unit {
         }
 
         //Mining
-        if (state == 51) {
+        if (state == 51 || (state==53 && rc.getTeamSoup() < buildTarget.cost+30)) {
             //System.out.printf("Currently carrying %d soup",rc.getSoupCarrying());
             //So many edge cases I want to kill myself
             while(tryMine());
@@ -220,7 +220,7 @@ public strictfp class Miner extends Unit {
         }
 
         //Refining
-        if (state == 52) {
+        if (state == 52 || (state==53 && rc.getTeamSoup() < buildTarget.cost+30)) {
             //TODO: Find nearest refinery
             moveTarget = findClosestRefinery(myMapLocation);
             if (myMapLocation.distanceSquaredTo(moveTarget)>400 && nearbySoup.length>0) {
@@ -250,10 +250,11 @@ public strictfp class Miner extends Unit {
         }
 
         //Building on orders
-        //TODO: Do something so that miners only go to build the thing when they have enough money in the bank, else continue mining
         if (state == 53) {
             //TODO: Shitty code and buggy logic, someone improve
-            System.out.println(buildLocation);
+            if (rc.getTeamSoup()>buildTarget.cost+30) {
+                moveTarget = buildLocation;
+            }
             if (myMapLocation.equals(buildLocation)) {
                 for  (Direction dir : directions) {
                     if (canMoveWithoutSuicide(dir)) {
@@ -263,15 +264,10 @@ public strictfp class Miner extends Unit {
             }
             if (getAdjacent().contains(buildLocation)) {
                 moveTarget = myMapLocation;
-            }
-
-            for  (Direction dir : directions) {
-                if (rc.adjacentLocation(dir).equals(buildLocation)) {
-                    if(tryBuild(buildTarget, dir)) {
-                        tryBroadcastSucess(buildOrderID, averageSend);
-                        state = 0;
-                        moveTarget = null;
-                    };
+                if (tryBuild(buildTarget, myMapLocation.directionTo(buildLocation))) {
+                    tryBroadcastSucess(buildOrderID, averageSend);
+                            state = 0;
+                            moveTarget = null;
                 }
             }
         }
