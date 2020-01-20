@@ -34,8 +34,11 @@ public strictfp class Miner extends Unit {
     MapLocation leftMineLocation;
 
     MapLocation findClosestRefinery(MapLocation loc) {
+        if (refinerySpots.size() == 0) {
+            return null;
+        }
         int distance = Integer.MAX_VALUE;
-        MapLocation res = hqLoc;
+        MapLocation res = null;
         for (MapLocation refinery : refinerySpots) {
             if (refinery.distanceSquaredTo(loc) < distance) {
                 distance = refinery.distanceSquaredTo(loc);
@@ -49,7 +52,7 @@ public strictfp class Miner extends Unit {
     void goRefine() throws GameActionException {
         MapLocation closestRefinery = findClosestRefinery(myMapLocation);
         leftMineLocation = myMapLocation;
-        if (closestRefinery.distanceSquaredTo(myMapLocation)>REFINERY_DISTANCE) {
+        if (closestRefinery == null || closestRefinery.distanceSquaredTo(myMapLocation)>REFINERY_DISTANCE) {
             wantToBuildRefinery = true;
         }
         state = 52;
@@ -135,7 +138,7 @@ public strictfp class Miner extends Unit {
                 MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
                 buildLocation.add(loc);
                 buildTarget.add(getRobotTypeFromID(message[4]));
-                buildOrderID.add(message[5]);
+                buildID.add(message[5]);
             }
             if (message[0] == 5) {
                 for (int i = 0; i < buildID.size(); i++) {
@@ -182,18 +185,31 @@ public strictfp class Miner extends Unit {
 
         if (state == 53) {
 
-            moveTarget = buildLocation;
-            if (myMapLocation.equals(buildLocation)) {
+            moveTarget = currentBuildLocation;
+            if (myMapLocation.equals(currentBuildLocation)) {
                 for  (Direction dir : directions) {
                     if (canMoveWithoutSuicide(dir)) {
                         rc.move(dir);
                     }
                 }
             }
+            if (rc.canSenseLocation(currentBuildLocation) && rc.senseRobotAtLocation(currentBuildLocation) != null && rc.senseRobotAtLocation(currentBuildLocation).getTeam()==team && rc.senseRobotAtLocation(currentBuildLocation).getType()==currentBuildTarget) {
+                //Potential bug
+                for (int i = 0; i < buildID.size(); i++) {
+                    if (buildID.get(i) == currentBuildID) {
+                        buildID.remove(i);
+                        buildTarget.remove(i);
+                        buildLocation.remove(i);
+                        break;
+                    }
+                }
+                tryBroadcastSuccess(currentBuildID, cheapSend);
+                reset();
+            }
             if (getAdjacent().contains(buildLocation)) {
                 moveTarget = myMapLocation;
-                if (tryBuild(buildTarget, myMapLocation.directionTo(buildLocation))) {
-                    tryBroadcastSuccess(buildOrderID, averageSend);
+                if (tryBuild(currentBuildTarget, myMapLocation.directionTo(currentBuildLocation))) {
+                    while(!tryBroadcastSuccess(currentBuildID, averageSend));
                     reset();
                 }
             }
@@ -270,14 +286,18 @@ public strictfp class Miner extends Unit {
 
         //Refining
         if (state == 52) {
-            //TODO: Find nearest refinery
             moveTarget = findClosestRefinery(myMapLocation);
-            if (myMapLocation.distanceSquaredTo(moveTarget)>400 && nearbySoup.length>0) {
+            if (moveTarget == null) {
                 wantToBuildRefinery = true;
                 leftMineLocation = myMapLocation;
-            }
-            if (leftMineLocation.distanceSquaredTo(findClosestRefinery(leftMineLocation)) < REFINERY_DISTANCE) {
-                wantToBuildRefinery = false;
+            } else {
+                if (myMapLocation.distanceSquaredTo(moveTarget)>400 && nearbySoup.length>0) {
+                    wantToBuildRefinery = true;
+                    leftMineLocation = myMapLocation;
+                }
+                if (leftMineLocation.distanceSquaredTo(findClosestRefinery(leftMineLocation)) < REFINERY_DISTANCE) {
+                    wantToBuildRefinery = false;
+                }
             }
             if (wantToBuildRefinery) {
                 for (Direction dir : directions) {
@@ -291,10 +311,7 @@ public strictfp class Miner extends Unit {
 
             tryRefine();
             if (rc.getSoupCarrying() == 0) {
-                wantToBuildRefinery = false;
-                state = 0;
-                moveTarget = null;
-                Clock.yield();
+                reset();
             }
         }
 
@@ -306,14 +323,29 @@ public strictfp class Miner extends Unit {
                     //Not sure if this should be added
                     map[getMiniMapLocation(moveTarget)][1] = 0;
                     //Can't get to the target
+                    if (state == 53) {
+                        for (int i = 0; i < buildID.size(); i++) {
+                            if (buildID.get(i) == currentBuildID) {
+                                buildID.remove(i);
+                                buildTarget.remove(i);
+                                buildLocation.remove(i);
+                                break;
+                            }
+                        }
+                    }
+                    if (state == 52) {
+                        for (int i = 0; i < refinerySpots.size(); i ++) {
+                            if (refinerySpots.get(i) == moveTarget) {
+                                refinerySpots.remove(i);
+                                moveTarget = null;
+                            }
+                        }
+                    }
                     System.out.println("Can't get there!");
-                    state = 0;
-                    moveTarget = randomLocation(); 
-                    Clock.yield();
+                    reset();
+                    
                 }
             }
         }
-
     }
-
 }
