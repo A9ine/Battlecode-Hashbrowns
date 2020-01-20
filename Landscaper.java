@@ -67,7 +67,7 @@ public strictfp class Landscaper extends Unit {
                             break;
                         }
                     }
-                    while(rc.senseElevation(Direction.CENTER) < rc.senseElevation(dir)-3){rc.depositDirt(Direction.CENTER);}
+                    while(rc.senseElevation(Direction.CENTER) < rc.senseElevation(dir)-3){rc.depositDirt(Direction.CENTER);storage--;}
                     return true;
                 }
                 //down
@@ -76,12 +76,11 @@ public strictfp class Landscaper extends Unit {
                         if(!rc.canDigDirt(Direction.CENTER)){ //cant dig cuz reach limit 25. dispose some.
                             for(Direction mdir : Direction){
                                 if(rc.canDepositDirt(mdir) && mdir!=dir){
-                                    rc.depositDirt(mdir);
-                                    break;
+                                    rc.depositDirt(mdir);storage--;break;
                                 }
                             }
                         }
-                        rc.digDirt(Direction.CENTER);
+                        rc.digDirt(Direction.CENTER); storage++;
                     }
                     return true;
                 }
