@@ -23,6 +23,13 @@ public strictfp abstract class Unit extends Robot {
     62 --> Latticing
     63 --> Path building
     64 --> Offensive
+
+    Drone
+    41 --> Finding Symmetry
+    42 --> Chasing
+    43 --> Drone wall
+    44 --> Drone surround attack
+    45 --> Offensive
     */
 
     Unit(RobotController rc) throws GameActionException {
@@ -32,7 +39,7 @@ public strictfp abstract class Unit extends Robot {
 
     //Navigation
 
-    boolean isRobotSafe(MapLocation current) throws GameActionException {
+    /*boolean isRobotSafe(MapLocation current) throws GameActionException {
         Team enemy = team.opponent();
         RobotInfo [] robots = rc.senseNearbyRobots(current,rc.getCurrentSensorRadiusSquared(),enemy);
         if (rc.senseFlooding(current.translate(0,rc.getCurrentSensorRadiusSquared()))
@@ -52,12 +59,25 @@ public strictfp abstract class Unit extends Robot {
             }
         }
         return true;
-    }
+    }*/
 
     boolean canMoveWithoutSuicide(Direction dir) throws GameActionException {
-        if (rc.canMove(dir) && (myType == RobotType.DELIVERY_DRONE || !rc.senseFlooding(rc.adjacentLocation(dir)))) {
+        if (myType == RobotType.DELIVERY_DRONE && rc.canMove(dir)) {
+            MapLocation loc = rc.adjacentLocation(dir);
+            for (RobotInfo robot : nearbyRobots) {
+                if (robot.getTeam()!=team && (robot.getType() == RobotType.HQ || robot.getType() == RobotType.NET_GUN)) {
+                    if (loc.distanceSquaredTo(robot.location)<=13 && myMapLocation.distanceSquaredTo(robot.location) > 13) {
+                        return false;
+                    }
+                }
+            }
             return true;
+        } else {
+            if (rc.canMove(dir) && !rc.senseFlooding(rc.adjacentLocation(dir))) {
+                return true;
+            }
         }
+        
         return false;
     }
 
@@ -167,7 +187,7 @@ public strictfp abstract class Unit extends Robot {
     boolean bugNavigate(MapLocation target) throws GameActionException {
 
         //Debugging
-        //rc.setIndicatorLine(myMapLocation, target, 255, 0, 0);
+        rc.setIndicatorLine(myMapLocation, target, 255, 0, 0);
 
         if (target != prevTarget) {
             isBugging = false;

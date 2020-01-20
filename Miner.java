@@ -185,6 +185,9 @@ public strictfp class Miner extends Unit {
 
         if (state == 53) {
 
+            System.out.println(currentBuildLocation);
+            System.out.println(currentBuildTarget);
+
             moveTarget = currentBuildLocation;
             if (myMapLocation.equals(currentBuildLocation)) {
                 for  (Direction dir : directions) {
