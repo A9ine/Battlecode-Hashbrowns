@@ -78,7 +78,6 @@ public strictfp abstract class Robot {
                 if (message[0] == 0) {
                     MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
                     map[getMiniMapLocation(loc)][1] = message[3];
-                    
                 }
             }
             
