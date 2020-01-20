@@ -29,11 +29,19 @@ public strictfp class Design extends Building {
     @Override
     public void run() throws GameActionException {
 
-        if ((rc.getTeamSoup()>150+landscaperNumber*20 && landscaperNumber < 20) || rc.getTeamSoup()>landscaperNumber*150) {
+        if ((rc.getTeamSoup()>150+landscaperNumber*20 && landscaperNumber < 12) || rc.getTeamSoup()>landscaperNumber*150) {
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.LANDSCAPER, dir)) {
                     landscaperNumber += 1;
                 };
+            }
+        } else {
+            if ((rc.getTeamSoup()>150+landscaperNumber*100) || rc.getTeamSoup()>landscaperNumber*150) {
+                for (Direction dir : directions) {
+                    if(tryBuild(RobotType.LANDSCAPER, dir)) {
+                        landscaperNumber += 1;
+                    };
+                }
             }
         }
 
