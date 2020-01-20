@@ -259,7 +259,7 @@ public strictfp abstract class Robot {
         return res;
     }
 
-    //Hey I am doing polymorphism give me a medal
+    //Hey I am doing polymorphism give me a medal <--- woc Mark NBBBB
     ArrayList<MapLocation> getAdjacent(MapLocation loc) throws GameActionException {
         ArrayList<MapLocation> res = new ArrayList<MapLocation>();
         for (Direction dir : directions) {
