@@ -216,7 +216,7 @@ public strictfp abstract class Robot {
         }, cost);
     }
 
-    boolean tryBroadcastSucess(int orderID, int cost) throws GameActionException {
+    boolean tryBroadcastSuccess(int orderID, int cost) throws GameActionException {
         
         return secureSend(new int[] {
             5,

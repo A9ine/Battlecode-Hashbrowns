@@ -18,12 +18,15 @@ public strictfp class Miner extends Unit {
 
     //Constants
     final int REFINERY_DISTANCE = 250;
+    final int BUILD_DISTANCE = 100;
 
     //Building stuff
-    //TODO: Make a build queue
-    RobotType buildTarget;
-    MapLocation buildLocation;
-    int buildOrderID;
+    ArrayList<RobotType> buildTarget = new ArrayList<RobotType>();
+    ArrayList<MapLocation> buildLocation = new ArrayList<MapLocation>();
+    ArrayList<Integer> buildID = new ArrayList<Integer>();
+    MapLocation currentBuildLocation;
+    Integer currentBuildID = -1;
+    RobotType currentBuildTarget;
 
     //Refinery stuff
     ArrayList<MapLocation> refinerySpots = new ArrayList<MapLocation>();
@@ -75,6 +78,18 @@ public strictfp class Miner extends Unit {
     }
 
     //General stuff
+    void reset() {
+        //Resets state to 0
+        state = 0;
+        moveTarget = null;
+        currentBuildID = -1;
+        currentBuildLocation = null;
+        currentBuildTarget = null;
+        leftMineLocation = null;
+        wantToBuildRefinery = false;
+
+    }
+
     void minerUpdate() throws GameActionException {
         update();
         for (MapLocation processingMapLocation : nearbySoup) {
@@ -100,6 +115,7 @@ public strictfp class Miner extends Unit {
             if (message[6] != KEY) {
                 continue;
             }
+
             //Potential mining data
             if (message[0] == 0) {
                 MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
@@ -113,26 +129,32 @@ public strictfp class Miner extends Unit {
                     }
                 }
             }
+
             //Building data
             if (message[0] == 1) {
                 MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
-                if (loc.distanceSquaredTo(myMapLocation) < 150) {
-                    state = 53;
-                    buildLocation = loc;
-                    buildTarget = getRobotTypeFromID(message[4]);
-                    buildOrderID = message[5];
-                }
+                buildLocation.add(loc);
+                buildTarget.add(getRobotTypeFromID(message[4]));
+                buildOrderID.add(message[5]);
             }
             if (message[0] == 5) {
-                if (message[5] == buildOrderID) {
-                    state = 0;
-                    buildOrderID = 0;
+                for (int i = 0; i < buildID.size(); i++) {
+                    if (buildID.get(i) == message[5]) {
+                        buildID.remove(i);
+                        buildTarget.remove(i);
+                        buildLocation.remove(i);
+                        break;
+                    }
+                    if (currentBuildID == message[5]) {
+                        reset();
+                    }
                 }
             }
             
         }
     }
 
+    //Run function
 
     @Override
     public void run() throws GameActionException {
@@ -147,9 +169,39 @@ public strictfp class Miner extends Unit {
             }
         }
 
+        //Building on orders
+        for (int i = 0; i < buildLocation.size(); i ++) {
+            if (buildLocation.get(i).distanceSquaredTo(myMapLocation) < BUILD_DISTANCE && rc.getTeamSoup()>buildTarget.get(i).cost+30) {
+                state = 53;
+                currentBuildID = buildID.get(i);
+                currentBuildTarget = buildTarget.get(i);
+                currentBuildLocation = buildLocation.get(i);
+                break;
+            }
+        }
+
+        if (state == 53) {
+
+            moveTarget = buildLocation;
+            if (myMapLocation.equals(buildLocation)) {
+                for  (Direction dir : directions) {
+                    if (canMoveWithoutSuicide(dir)) {
+                        rc.move(dir);
+                    }
+                }
+            }
+            if (getAdjacent().contains(buildLocation)) {
+                moveTarget = myMapLocation;
+                if (tryBuild(buildTarget, myMapLocation.directionTo(buildLocation))) {
+                    tryBroadcastSuccess(buildOrderID, averageSend);
+                    reset();
+                }
+            }
+        }
+
 
         //Doing nothing
-        if (state == 0 || (state==53 && rc.getTeamSoup() < buildTarget.cost+30)) {
+        if (state == 0) {
             if (moveTarget == null) {
                 //Find a mining spot with BFS
                 Queue<Integer> queue = new LinkedList<Integer>();
@@ -188,16 +240,13 @@ public strictfp class Miner extends Unit {
             }
         }
             
-        if (state == 0 && moveTarget == null) {
+        if (state == 0 && (moveTarget == null || myMapLocation == moveTarget)) {
             //Nothing must have been found. Go to a random location and explore
             moveTarget = randomLocation(); 
-
-        } else if (state == 0 && myMapLocation.equals(moveTarget)) {
-            moveTarget = randomLocation();
         }
 
         //Mining
-        if (state == 51 || (state==53 && rc.getTeamSoup() < buildTarget.cost+30)) {
+        if (state == 51) {
             //System.out.printf("Currently carrying %d soup",rc.getSoupCarrying());
             //So many edge cases I want to kill myself
             while(tryMine());
@@ -220,7 +269,7 @@ public strictfp class Miner extends Unit {
         }
 
         //Refining
-        if (state == 52 || (state==53 && rc.getTeamSoup() < buildTarget.cost+30)) {
+        if (state == 52) {
             //TODO: Find nearest refinery
             moveTarget = findClosestRefinery(myMapLocation);
             if (myMapLocation.distanceSquaredTo(moveTarget)>400 && nearbySoup.length>0) {
@@ -246,29 +295,6 @@ public strictfp class Miner extends Unit {
                 state = 0;
                 moveTarget = null;
                 Clock.yield();
-            }
-        }
-
-        //Building on orders
-        if (state == 53) {
-            //TODO: Shitty code and buggy logic, someone improve
-            if (rc.getTeamSoup()>buildTarget.cost+30) {
-                moveTarget = buildLocation;
-            }
-            if (myMapLocation.equals(buildLocation)) {
-                for  (Direction dir : directions) {
-                    if (canMoveWithoutSuicide(dir)) {
-                        rc.move(dir);
-                    }
-                }
-            }
-            if (getAdjacent().contains(buildLocation)) {
-                moveTarget = myMapLocation;
-                if (tryBuild(buildTarget, myMapLocation.directionTo(buildLocation))) {
-                    tryBroadcastSucess(buildOrderID, averageSend);
-                            state = 0;
-                            moveTarget = null;
-                }
             }
         }
 

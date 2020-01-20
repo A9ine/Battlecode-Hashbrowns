@@ -41,11 +41,7 @@ public strictfp class Landscaper extends Unit {
                         hqWall.add(loc.translate(-1,-2));
                         hqWall.add(loc.translate(1,-2));
                         hqWall.add(loc.translate(0,-2));
-                        for (MapLocation wall : hqWall) {
-                            if (!rc.onTheMap(wall)) {
-                                hqWall.remove(wall);
-                            }
-                        }
+
                     }
                     wallIter = hqWall.size()-1;
                 }
@@ -88,6 +84,9 @@ public strictfp class Landscaper extends Unit {
             } else {
                 if (staticWallTarget == null) {
                     staticWallTarget = hqWall.get(wallIter);
+                    if (!rc.onTheMap(staticWallTarget)) {
+                        staticWallTarget = null;
+                    }
                     wallIter -= 1;
                     if (wallIter == -1) {
                         wallIter = hqWall.size()-1; 
