@@ -5,7 +5,7 @@ public strictfp abstract class Unit extends Robot {
 
     //BIG TODO: Run a unit away in update if they are about to die
 
-    
+
     MapLocation destination;
     int state;
     /*
@@ -31,6 +31,22 @@ public strictfp abstract class Unit extends Robot {
     }
 
     //Navigation
+
+    boolean isRobotSafe(MapLocation current) throws GameActionException {
+        RobotInfo [] robots = rc.senseNearbyRobots(current,enemy);
+        if (robots.length == 0) {
+            return true;
+        }
+        else if (robots.length!=0) {
+            for (RobotInfo robot : robots) {
+                if (robot.getType() == RobotType.DELIVERY_DRONE) {
+                    return false;
+            
+                }
+            }
+        }
+        return true;
+    }
 
     boolean canMoveWithoutSuicide(Direction dir) throws GameActionException {
         if (rc.canMove(dir) && (myType == RobotType.DELIVERY_DRONE || !rc.senseFlooding(rc.adjacentLocation(dir)))) {
