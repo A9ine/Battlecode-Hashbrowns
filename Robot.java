@@ -124,6 +124,7 @@ public strictfp abstract class Robot {
                 // 3 --> Attack
                 // 4 --> Transport
                 // 5 --> Sucess
+                // 6 --> Drone Wall
             //[flooded + x + y]
             //[Elevation]
             //[Soup]
@@ -259,11 +260,22 @@ public strictfp abstract class Robot {
         return res;
     }
 
+    //Hey I am doing polymorphism give me a medal
+    ArrayList<MapLocation> getAdjacent(MapLocation loc) throws GameActionException {
+        ArrayList<MapLocation> res = new ArrayList<MapLocation>();
+        for (Direction dir : directions) {
+            if (rc.onTheMap(loc.add(dir))) {
+                res.add(loc.add(dir));
+            }
+        }
+        return res;
+    }
+
     ArrayList<MapLocation> getAdjacent() throws GameActionException {
         ArrayList<MapLocation> res = new ArrayList<MapLocation>();
         for (Direction dir : directions) {
-            if (rc.onTheMap(rc.adjacentLocation(dir))) {
-                res.add(rc.adjacentLocation(dir));
+            if (rc.onTheMap(myMapLocation.add(dir))) {
+                res.add(myMapLocation.add(dir));
             }
         }
         return res;
@@ -277,8 +289,6 @@ public strictfp abstract class Robot {
             return true;
         } else return false;
     }
-
-
 
     public abstract void run() throws GameActionException;
 

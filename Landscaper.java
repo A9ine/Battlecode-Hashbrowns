@@ -4,9 +4,26 @@ import java.util.*;
 
 public strictfp class Landscaper extends Unit {
 
-    ArrayList<MapLocation> hqWall = new ArrayList<MapLocation>();
+    ArrayList<MapLocation> staticWallsToBeBuilt = new ArrayList<MapLocation>();
+    ArrayList<Integer> staticWallsOrderID = new ArrayList<Integer>(); 
+    HashMap<MapLocation, Boolean> isWall = new HashMap<MapLocation, Boolean>(); 
     MapLocation staticWallTarget;
-    int wallIter;
+    Integer orderID;
+    Boolean fulfilled = false;
+
+    boolean tryDepositDirt(Direction dir) throws GameActionException {
+        if (rc.canDepositDirt(dir)) {
+            rc.depositDirt(dir);
+        }
+        return false;
+    }
+
+    boolean tryDigDirt(Direction dir) throws GameActionException {
+        if (rc.canDigDirt(dir)) {
+            rc.digDirt(dir);
+        }
+        return false;
+    }
 
     Landscaper(RobotController rc) throws GameActionException {
         super(rc);
@@ -24,99 +41,103 @@ public strictfp class Landscaper extends Unit {
                     MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
                     if (message[4]  == 1) {
                         hqLoc = loc;
-                        //From bottom to top
-                        hqWall.add(loc.translate(0,2));
-                        hqWall.add(loc.translate(1,2));
-                        hqWall.add(loc.translate(-1,2));
-                        hqWall.add(loc.translate(-2,2));
-                        hqWall.add(loc.translate(2,2));
-                        hqWall.add(loc.translate(-2,1));
-                        hqWall.add(loc.translate(2,1));
-                        hqWall.add(loc.translate(-2,0));
-                        hqWall.add(loc.translate(2,0));
-                        hqWall.add(loc.translate(2,-1));
-                        hqWall.add(loc.translate(-2,-1));
-                        hqWall.add(loc.translate(2,-2));
-                        hqWall.add(loc.translate(-2,-2));
-                        hqWall.add(loc.translate(-1,-2));
-                        hqWall.add(loc.translate(1,-2));
-                        hqWall.add(loc.translate(0,-2));
-
                     }
-                    wallIter = hqWall.size()-1;
+                    for (MapLocation nearLoc : getAdjacent(hqLoc)) {
+                        staticWallsToBeBuilt.add(nearLoc);
+                        isWall.put(nearLoc,true);
+                        staticWallsOrderID.add(nearLoc.x*100+nearLoc.y);
+                    }
                 }
             }
         }
     }
-    
+
     void landcaperUpdate() throws GameActionException {
         update();
+        landscaperCommunications();
     }
+
+    void landscaperCommunications() throws GameActionException {
+
+        for (Transaction trans : latestCommunication) {
+            int[] message = getInformation(trans);
+            if (message[6] != KEY) {
+                continue;
+            }
+
+            if (message[0] == 5) {
+                for (int i = 0; i < staticWallsOrderID.size(); i++) {
+                    if (staticWallsOrderID.get(i) == message[5]) {
+                        staticWallsOrderID.remove(i);
+                        if (staticWallTarget == staticWallsToBeBuilt.get(i)) {
+                            staticWallTarget = null;
+                        }
+                        staticWallsToBeBuilt.remove(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+    }
+    
+
 
     @Override
     public void run() throws GameActionException {
+        System.out.println(staticWallTarget);
         landcaperUpdate();
 
         if (state == 0) {
-            //I must be a defensive robot
+            //Might as well check the HQ Walls
             if (hqLoc.distanceSquaredTo(myMapLocation) < 16) {
                 state = 51;
             }
         }
+
         if (state == 51) {
             if (staticWallTarget != null && staticWallTarget.equals(myMapLocation)) {
-                if (rc.senseFlooding(rc.adjacentLocation(myMapLocation.directionTo(hqLoc)))) {
-                    if (rc.canDepositDirt(myMapLocation.directionTo(hqLoc))) {
-                        rc.depositDirt(myMapLocation.directionTo(hqLoc));
+
+                if (!fulfilled) {
+                    fulfilled = true;
+                    while(!tryBroadcastSuccess(orderID, averageSend));
+                }
+                ArrayList<MapLocation> adjacent = getAdjacent();
+                MapLocation minElevationTarget = myMapLocation;
+                Integer minElevation = rc.senseElevation(myMapLocation);
+                for (MapLocation loc : adjacent) {
+                    if (isWall.containsKey(loc) && isWall.get(loc) && rc.senseElevation(loc) < minElevation && rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team && rc.senseRobotAtLocation(loc).getType()==RobotType.LANDSCAPER) {
+                        minElevation = rc.senseElevation(loc);
+                        minElevationTarget = loc;
                     }
                 }
-                if (rc.canDepositDirt(Direction.CENTER)) {
-                    rc.depositDirt(Direction.CENTER);
-                }
+                if (tryDepositDirt(myMapLocation.directionTo(minElevationTarget))) {
+                    Clock.yield();
+                };
                 for (Direction dir : directions) {
-                    if (rc.adjacentLocation(dir).distanceSquaredTo(hqLoc)<myMapLocation.distanceSquaredTo(hqLoc)) {
-                        continue;
-                    }
-                    if (!hqWall.contains(rc.adjacentLocation(dir)) && rc.canDigDirt(dir)) {
-                        rc.digDirt(dir);
+                    if (!isWall.containsKey(rc.adjacentLocation(dir)) || !isWall.get(rc.adjacentLocation(dir))) {
+                        if (tryDigDirt(dir)) {
+                            Clock.yield();
+                        }
                     }
                 }
             } else {
                 if (staticWallTarget == null) {
-                    staticWallTarget = hqWall.get(wallIter);
-                    if (!rc.onTheMap(staticWallTarget)) {
-                        staticWallTarget = null;
-                    }
-                    wallIter -= 1;
-                    if (wallIter == -1) {
-                        wallIter = hqWall.size()-1; 
-                    }
-                } else {
-                    if (rc.canSenseLocation(staticWallTarget))  {
-                        //If flooded, try to block it up 
-                        if (rc.senseFlooding(staticWallTarget)) {
-                            if (getAdjacent().contains(staticWallTarget)){
-                                if (rc.canDepositDirt(myMapLocation.directionTo(staticWallTarget))) {
-                                    rc.depositDirt(myMapLocation.directionTo(staticWallTarget));
-                                }
-                                for (Direction dir : directions) {
-                                    if (!hqWall.contains(rc.adjacentLocation(dir)) && rc.canDigDirt(dir)) {
-                                        rc.digDirt(dir);
-                                    }
-                                }
-                            }
-                        }
-                        RobotInfo robot = rc.senseRobotAtLocation(staticWallTarget);
-                        if (robot != null) {
-                            if (robot.getTeam() == team && robot.getType() == RobotType.LANDSCAPER) {
-                                staticWallTarget = null;
-                            }
-                        }
-                    }
-                    if (staticWallTarget != null) {
-                        bugNavigate(staticWallTarget);
+                    if (staticWallsToBeBuilt.size() > 0) {
+                        staticWallTarget = staticWallsToBeBuilt.get(0);
+                        orderID = staticWallsOrderID.get(0);
+                        staticWallsOrderID.remove(0);
+                        staticWallsToBeBuilt.remove(0);
                     }
                 }
+                if (rc.canSenseLocation(staticWallTarget) && rc.senseRobotAtLocation(staticWallTarget) != null) {
+                    if (rc.senseRobotAtLocation(staticWallTarget).getTeam() == team && rc.senseRobotAtLocation(staticWallTarget).getType()==RobotType.LANDSCAPER) {
+                        System.out.println("OK?");
+                        staticWallTarget = null;
+                        orderID = null;
+                    }
+                }
+                bugNavigate(staticWallTarget);
             }
             
         }

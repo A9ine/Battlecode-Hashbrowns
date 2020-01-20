@@ -11,9 +11,6 @@ public strictfp abstract class Unit extends Robot {
     /*
     General
     0 --> Nothing
-    1 --> Exploring
-    2 --> Attacking
-    3 --> Defending
 
     Miner
     51 --> Mining

@@ -162,7 +162,7 @@ public strictfp class Miner extends Unit {
     @Override
     public void run() throws GameActionException {
         minerUpdate();
-        System.out.println(state);
+        //System.out.println(state);
 
         if (turn == 1) {
             for (MapLocation loc : getAdjacent()) {

@@ -57,16 +57,8 @@ public strictfp class HQ extends Building {
             //If someone rushes us
             //We are fucked
             //TODO: Unfuck us with defense code
-            MapLocation target = null;
-            while (target == null) {
-                for (MapLocation potential : getAdjacent()) {
-                    if (rc.onTheMap(potential)  && 	!rc.senseFlooding(potential)) {
-                        target = potential;
-                        break;
-                    }
-                }
-            }
-            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, turn + KEY, fastSend));
+            MapLocation target = myMapLocation.translate(2,2);
+            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, rc.getID(), fastSend));
         }
         
         if  (turn < 10) {
