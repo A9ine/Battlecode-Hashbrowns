@@ -34,12 +34,12 @@ public strictfp class Fulfillment extends Building {
         if (nearbyRobots.length > 0) {
             for (RobotInfo robot : nearbyRobots) {
                 if (robot.getTeam() != team && robot.getType() != RobotType.DELIVERY_DRONE) {
-                    multiplier = 0.2;
+                    multiplier = 0.1;
                 }
             }
         }
         
-        if (rc.getTeamSoup() > 150 + droneCount * 100 * multiplier) {
+        if (rc.getTeamSoup() > 150 + droneCount * 300 * multiplier) {
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.DELIVERY_DRONE, dir)) {
                     droneCount += 1;

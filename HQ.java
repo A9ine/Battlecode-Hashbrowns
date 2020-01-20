@@ -48,7 +48,7 @@ public strictfp class HQ extends Building {
         }
 
         //Start building the base
-        if (turn == 90) {
+        if (turn == 60) {
             //Make sure there is a miner nearby
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.MINER, dir)) {
@@ -61,11 +61,11 @@ public strictfp class HQ extends Building {
             //TODO: Potential fuck up point : No Building loc found
             //Someone should do a BFS or something
             MapLocation target = myMapLocation.translate(0,2);
-            for (int i = -2; i <= 2; i ++) {
-                for (int j = -2; j <= 2; j ++) {
+            for (int i = 2; i >= -2; i --) {
+                for (int j = 2; j >= -2; j --) {
                     MapLocation temp = myMapLocation.translate(i,j);
 
-                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 3 && !rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
+                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 6 && !rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
                         target = temp;
                     }
                 }
@@ -90,7 +90,7 @@ public strictfp class HQ extends Building {
                 for (int j = -2; j <= 2; j ++) {
                     MapLocation temp = myMapLocation.translate(i,j);
                     System.out.println(temp.distanceSquaredTo(myMapLocation));
-                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 3 && !rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
+                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 6 && !rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
                         target = temp;
                     }
                 }

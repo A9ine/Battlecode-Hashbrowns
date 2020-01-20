@@ -76,6 +76,12 @@ public strictfp class Landscaper extends Unit {
         //System.out.println(state);
         //System.out.println(staticWallTarget);
 
+        for (MapLocation loc : getAdjacent()) {
+            if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()!=team &&rc.senseRobotAtLocation(loc).getType().isBuilding()){
+                tryDepositDirt(myMapLocation.directionTo(loc));
+            }
+        }
+
         if (state == 0) {
             //Might as well check the HQ Walls
             state = 51;
@@ -129,6 +135,31 @@ public strictfp class Landscaper extends Unit {
                 }
                 if(staticWallTarget == null) {
                     state = 0;
+                    if (myMapLocation.distanceSquaredTo(hqLoc)>8) {
+                        fuzzyNavigate(hqLoc);
+                    }
+                    ArrayList<MapLocation> adjacent = getAdjacent();
+                    MapLocation minElevationTarget = myMapLocation;
+                    Integer minElevation = (int)(rc.senseElevation(myMapLocation)*2);
+                    if (minElevation < 0) {
+                        minElevation = 500;
+                    }
+                    for (MapLocation loc : adjacent) {
+                        if (isWall.containsKey(loc) && isWall.get(loc) && rc.senseElevation(loc) < minElevation && ((rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team && rc.senseRobotAtLocation(loc).getType()==RobotType.LANDSCAPER) || rc.getRoundNum() > 600)) {
+                            minElevation = rc.senseElevation(loc);
+                            minElevationTarget = loc;
+                        }
+                    }
+                    if (tryDepositDirt(myMapLocation.directionTo(minElevationTarget))) {
+                        Clock.yield();
+                    };
+                    for (Direction dir : directions) {
+                        if (!isWall.containsKey(rc.adjacentLocation(dir)) || !isWall.get(rc.adjacentLocation(dir))) {
+                            if (tryDigDirt(dir)) {
+                                Clock.yield();
+                            }
+                        }
+                    }
                     return;
                 }
                 if (rc.canSenseLocation(staticWallTarget) && rc.senseRobotAtLocation(staticWallTarget) != null) {
