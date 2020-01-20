@@ -1,5 +1,6 @@
 package potato;
 import battlecode.common.*;
+import java.util.*;
 
 public strictfp class HQ extends Building {
 
@@ -9,6 +10,7 @@ public strictfp class HQ extends Building {
     int fulfillmentCenterNum = 0;
     int orderID = 0;
     boolean stageOne = false; //Turn 50 or enemy rush
+    ArrayList<MapLocation> buildingLocations = new ArrayList<MapLocation>(); 
 
     HQ(RobotController rc) throws GameActionException {
         super(rc);
@@ -46,8 +48,35 @@ public strictfp class HQ extends Building {
         }
 
         //Start building the base
-        if (turn == 50) {
-            System.out.println(turn=50);
+        if (turn == 100) {
+            //Make sure there is a miner nearby
+            for (Direction dir : directions) {
+                if(tryBuild(RobotType.MINER, dir)) {
+                    minerNum += 1;
+                };
+            }
+            //If someone rushes us
+            //We are fucked
+            //TODO: Unfuck us with defense code
+            //TODO: Potential fuck up point : No Building loc found
+            //Someone should do a BFS or something
+            MapLocation target = myMapLocation.translate(0,2);
+            for (int i = -2; i <= 2; i ++) {
+                for (int j = -2; j <= 2; j ++) {
+                    MapLocation temp = myMapLocation.translate(i,j);
+                    System.out.println(temp.distanceSquaredTo(myMapLocation));
+                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 3 && rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
+                        target = temp;
+                    }
+                }
+            }
+
+            buildingLocations.add(target);
+            orderID+=1;
+            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, rc.getID()+orderID, fastSend));
+        }
+
+        if (turn == 60) {
             //Make sure there is a miner nearby
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.MINER, dir)) {
@@ -62,16 +91,17 @@ public strictfp class HQ extends Building {
                 for (int j = -2; j <= 2; j ++) {
                     MapLocation temp = myMapLocation.translate(i,j);
                     System.out.println(temp.distanceSquaredTo(myMapLocation));
-                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 3 ) {
+                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 3 && rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
                         target = temp;
                     }
                 }
             }
-
-            System.out.println(target);
-
-            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, rc.getID(), fastSend));
+            buildingLocations.add(target);
+            orderID+=1;
+            while (!tryBroadcastBuild(target, RobotType.FULFILLMENT_CENTER, rc.getID()+orderID, fastSend));
         }
+
+
         if (minerNum < 20) {
             if  (turn < 10) {
                 for (Direction dir : directions) {
@@ -91,7 +121,7 @@ public strictfp class HQ extends Building {
             }
     
             else {  
-                if (rc.getTeamSoup()>minerNum * 150) {
+                if (rc.getTeamSoup()>70+minerNum*20) {
                     for (Direction dir : directions) {
                         if(tryBuild(RobotType.MINER, dir)) {
                             minerNum += 1;
