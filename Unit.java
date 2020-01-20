@@ -35,6 +35,12 @@ public strictfp abstract class Unit extends Robot {
     boolean isRobotSafe(MapLocation current) throws GameActionException {
         Team enemy = team.opponent();
         RobotInfo [] robots = rc.senseNearbyRobots(current,rc.getCurrentSensorRadiusSquared(),enemy);
+        if (rc.senseFlooding(current.translate(0,rc.getCurrentSensorRadiusSquared()))
+            || rc.senseFlooding(current.translate(0,-rc.getCurrentSensorRadiusSquared()))
+            || rc.senseFlooding(current.translate(rc.getCurrentSensorRadiusSquared(),0))
+            || rc.senseFlooding(current.translate(-rc.getCurrentSensorRadiusSquared(),0))) {
+                return false;
+            }
         if (robots.length == 0) {
             return true;
         }
@@ -42,7 +48,6 @@ public strictfp abstract class Unit extends Robot {
             for (RobotInfo robot : robots) {
                 if (robot.getType() == RobotType.DELIVERY_DRONE) {
                     return false;
-            
                 }
             }
         }
