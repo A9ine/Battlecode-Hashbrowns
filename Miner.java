@@ -162,6 +162,7 @@ public strictfp class Miner extends Unit {
     @Override
     public void run() throws GameActionException {
         minerUpdate();
+        System.out.println(state);
 
         if (turn == 1) {
             for (MapLocation loc : getAdjacent()) {
@@ -173,13 +174,15 @@ public strictfp class Miner extends Unit {
         }
 
         //Building on orders
-        for (int i = 0; i < buildLocation.size(); i ++) {
-            if (buildLocation.get(i).distanceSquaredTo(myMapLocation) < BUILD_DISTANCE && rc.getTeamSoup()>buildTarget.get(i).cost+30) {
-                state = 53;
-                currentBuildID = buildID.get(i);
-                currentBuildTarget = buildTarget.get(i);
-                currentBuildLocation = buildLocation.get(i);
-                break;
+        if (state != 53) {
+            for (int i = 0; i < buildLocation.size(); i ++) {
+                if (buildLocation.get(i).distanceSquaredTo(myMapLocation) < BUILD_DISTANCE && rc.getTeamSoup()>buildTarget.get(i).cost+30) {
+                    state = 53;
+                    currentBuildID = buildID.get(i);
+                    currentBuildTarget = buildTarget.get(i);
+                    currentBuildLocation = buildLocation.get(i);
+                    break;
+                }
             }
         }
 
@@ -206,7 +209,7 @@ public strictfp class Miner extends Unit {
                 tryBroadcastSuccess(currentBuildID, cheapSend);
                 reset();
             }
-            if (getAdjacent().contains(buildLocation)) {
+            if (getAdjacent().contains(currentBuildLocation)) {
                 moveTarget = myMapLocation;
                 if (tryBuild(currentBuildTarget, myMapLocation.directionTo(currentBuildLocation))) {
                     while(!tryBroadcastSuccess(currentBuildID, averageSend));
@@ -256,7 +259,7 @@ public strictfp class Miner extends Unit {
             }
         }
             
-        if (state == 0 && (moveTarget == null || myMapLocation == moveTarget)) {
+        if (state == 0 && (moveTarget == null || myMapLocation.equals(moveTarget))) {
             //Nothing must have been found. Go to a random location and explore
             moveTarget = randomLocation(); 
         }
