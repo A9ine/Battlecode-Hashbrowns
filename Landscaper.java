@@ -1,6 +1,7 @@
 package potato;
 import battlecode.common.*;
 import java.util.*;
+import java.math.*;
 
 public strictfp class Landscaper extends Unit {
 
@@ -10,6 +11,61 @@ public strictfp class Landscaper extends Unit {
     MapLocation staticWallTarget;
     Integer orderID;
     Boolean fulfilled = false;
+
+    boolean buildStair(Direction dir) throws GameActionException {
+        MapLocation nextLocation = rc.adjacentLocation(dir);
+        Boolean isFlooded = rc.senseFlooding(nextDirection);
+        Integer myElevation = rc.senseElevation(myMapLocation);
+        Integer nextElevation = rc.senseElevation(nextLocation);
+        //TODO: For now stairs only. We can try to build a bridge
+        if (Math.abs(nextElevation-myElevation)<15 && !isFlooded) {
+            if (nextElevation > myElevation) {
+                tryDepositDirt(Direction.CENTER);
+                tryDigDirt(dir);
+            } else {
+                tryDepositDirt(dir);
+                tryDigDirt(Direction.CENTER);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    boolean fuzzyNavigate(MapLocation target) throws GameActionException{
+        rc.setIndicatorLine(myMapLocation, target, 0, 144, 144);
+        if(target.equals(myMapLocation)){
+            return true;
+        }
+        if(rc.isReady()){
+            if (canMoveWithoutSuicide(myMapLocation.directionTo(target))) {
+                rc.move(myMapLocation.directionTo(target));
+                return false;
+            }
+            if (myMapLocation.y < target.y && canMoveWithoutSuicide(Direction.NORTH)) {
+                rc.move(Direction.NORTH);
+                return false;
+            }
+            if (myMapLocation.y > target.y && canMoveWithoutSuicide(Direction.SOUTH)) {
+                rc.move(Direction.SOUTH);
+                return false;
+            }
+            if (myMapLocation.x < target.x && canMoveWithoutSuicide(Direction.EAST)) {
+                rc.move(Direction.EAST);
+                return false;
+            }
+            if (myMapLocation.x > target.x && canMoveWithoutSuicide(Direction.WEST)) {
+                rc.move(Direction.WEST);
+                return false;
+            }
+
+            if (!buildStair(myMapLocation.directionTo(target))) {
+                bugNavigate(target);
+            };
+
+
+        }
+        return false;
+    }
 
     boolean tryDepositDirt(Direction dir) throws GameActionException {
         if (rc.canDepositDirt(dir)) {
@@ -137,7 +193,7 @@ public strictfp class Landscaper extends Unit {
                         orderID = null;
                     }
                 }
-                bugNavigate(staticWallTarget);
+                fuzzyNavigation(staticWallTarget);
             }
             
         }
