@@ -99,9 +99,6 @@ public strictfp class Miner extends Unit {
             if (state == 0) {
                 moveTarget = null;
             }
-            int location = getMiniMapLocation(processingMapLocation);
-            map[location][0] = rc.senseElevation(processingMapLocation);
-            map[location][1] = rc.senseSoup(processingMapLocation);
         }
 
         for (RobotInfo robot : nearbyRobots) {
@@ -162,7 +159,7 @@ public strictfp class Miner extends Unit {
     @Override
     public void run() throws GameActionException {
         minerUpdate();
-        //System.out.println(state);
+        System.out.println(state);
 
         if (turn == 1) {
             for (MapLocation loc : getAdjacent()) {

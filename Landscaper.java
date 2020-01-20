@@ -12,75 +12,6 @@ public strictfp class Landscaper extends Unit {
     Integer orderID;
     Boolean fulfilled = false;
 
-    boolean buildStair(Direction dir) throws GameActionException {
-        MapLocation nextLocation = rc.adjacentLocation(dir);
-        Boolean isFlooded = rc.senseFlooding(nextDirection);
-        Integer myElevation = rc.senseElevation(myMapLocation);
-        Integer nextElevation = rc.senseElevation(nextLocation);
-        //TODO: For now stairs only. We can try to build a bridge
-        if (Math.abs(nextElevation-myElevation)<15 && !isFlooded) {
-            if (nextElevation > myElevation) {
-                tryDepositDirt(Direction.CENTER);
-                tryDigDirt(dir);
-            } else {
-                tryDepositDirt(dir);
-                tryDigDirt(Direction.CENTER);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    boolean fuzzyNavigate(MapLocation target) throws GameActionException{
-        rc.setIndicatorLine(myMapLocation, target, 0, 144, 144);
-        if(target.equals(myMapLocation)){
-            return true;
-        }
-        if(rc.isReady()){
-            if (canMoveWithoutSuicide(myMapLocation.directionTo(target))) {
-                rc.move(myMapLocation.directionTo(target));
-                return false;
-            }
-            if (myMapLocation.y < target.y && canMoveWithoutSuicide(Direction.NORTH)) {
-                rc.move(Direction.NORTH);
-                return false;
-            }
-            if (myMapLocation.y > target.y && canMoveWithoutSuicide(Direction.SOUTH)) {
-                rc.move(Direction.SOUTH);
-                return false;
-            }
-            if (myMapLocation.x < target.x && canMoveWithoutSuicide(Direction.EAST)) {
-                rc.move(Direction.EAST);
-                return false;
-            }
-            if (myMapLocation.x > target.x && canMoveWithoutSuicide(Direction.WEST)) {
-                rc.move(Direction.WEST);
-                return false;
-            }
-
-            if (!buildStair(myMapLocation.directionTo(target))) {
-                bugNavigate(target);
-            };
-
-
-        }
-        return false;
-    }
-
-    boolean tryDepositDirt(Direction dir) throws GameActionException {
-        if (rc.canDepositDirt(dir)) {
-            rc.depositDirt(dir);
-        }
-        return false;
-    }
-
-    boolean tryDigDirt(Direction dir) throws GameActionException {
-        if (rc.canDigDirt(dir)) {
-            rc.digDirt(dir);
-        }
-        return false;
-    }
-
     Landscaper(RobotController rc) throws GameActionException {
         super(rc);
         //Have to find the hqLoc
@@ -103,6 +34,7 @@ public strictfp class Landscaper extends Unit {
                         isWall.put(nearLoc,true);
                         staticWallsOrderID.add(nearLoc.x*100+nearLoc.y);
                     }
+                    //System.out.println(staticWallsOrderID);
                 }
             }
         }
@@ -136,19 +68,17 @@ public strictfp class Landscaper extends Unit {
         }
 
     }
-    
-
 
     @Override
     public void run() throws GameActionException {
-        System.out.println(staticWallTarget);
         landcaperUpdate();
+
+        //System.out.println(state);
+        //System.out.println(staticWallTarget);
 
         if (state == 0) {
             //Might as well check the HQ Walls
-            if (hqLoc.distanceSquaredTo(myMapLocation) < 16) {
-                state = 51;
-            }
+            state = 51;
         }
 
         if (state == 51) {
@@ -162,7 +92,7 @@ public strictfp class Landscaper extends Unit {
                 MapLocation minElevationTarget = myMapLocation;
                 Integer minElevation = rc.senseElevation(myMapLocation);
                 for (MapLocation loc : adjacent) {
-                    if (isWall.containsKey(loc) && isWall.get(loc) && rc.senseElevation(loc) < minElevation && rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team && rc.senseRobotAtLocation(loc).getType()==RobotType.LANDSCAPER) {
+                    if (isWall.containsKey(loc) && isWall.get(loc) && rc.senseElevation(loc) < minElevation && ((rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team && rc.senseRobotAtLocation(loc).getType()==RobotType.LANDSCAPER) || rc.getRoundNum() > 600)) {
                         minElevation = rc.senseElevation(loc);
                         minElevationTarget = loc;
                     }
@@ -178,22 +108,44 @@ public strictfp class Landscaper extends Unit {
                     }
                 }
             } else {
-                if (staticWallTarget == null) {
-                    if (staticWallsToBeBuilt.size() > 0) {
-                        staticWallTarget = staticWallsToBeBuilt.get(0);
-                        orderID = staticWallsOrderID.get(0);
-                        staticWallsOrderID.remove(0);
-                        staticWallsToBeBuilt.remove(0);
+                if (staticWallsToBeBuilt.size()<=0) {
+                    state = 0;
+                    Clock.yield();
+                }
+                if (staticWallTarget == null && staticWallsToBeBuilt.size()>0) {
+                    int index = 0;
+                    Integer minimumDistance = Integer.MAX_VALUE;
+                    
+                    for (int i = 0; i < staticWallsToBeBuilt.size(); i ++) {
+                        if (minimumDistance > myMapLocation.distanceSquaredTo(staticWallsToBeBuilt.get(i))) {
+                            index = i;
+                            minimumDistance = myMapLocation.distanceSquaredTo(staticWallsToBeBuilt.get(i)); 
+                        }
                     }
+                    staticWallTarget = staticWallsToBeBuilt.get(index);
+                    orderID = staticWallsOrderID.get(index);
+                    staticWallsOrderID.remove(index);
+                    staticWallsToBeBuilt.remove(index);
+                }
+                if(staticWallTarget == null) {
+                    state = 0;
+                    return;
                 }
                 if (rc.canSenseLocation(staticWallTarget) && rc.senseRobotAtLocation(staticWallTarget) != null) {
                     if (rc.senseRobotAtLocation(staticWallTarget).getTeam() == team && rc.senseRobotAtLocation(staticWallTarget).getType()==RobotType.LANDSCAPER) {
-                        System.out.println("OK?");
                         staticWallTarget = null;
                         orderID = null;
                     }
                 }
-                fuzzyNavigation(staticWallTarget);
+                if (staticWallTarget != null) {
+                    if (myMapLocation.distanceSquaredTo(staticWallTarget) <= 2){
+                        fuzzyNavigate(staticWallTarget);
+                    }
+                    if (bugNavigate(staticWallTarget) && !myMapLocation.equals(staticWallTarget)){
+                        fuzzyNavigate(staticWallTarget);
+                    }
+                }
+                
             }
             
         }
