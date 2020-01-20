@@ -33,6 +33,7 @@ public strictfp abstract class Unit extends Robot {
     //Navigation
 
     boolean isRobotSafe(MapLocation current) throws GameActionException {
+        Team enemy = team.opponent();
         RobotInfo [] robots = rc.senseNearbyRobots(current,rc.getCurrentSensorRadiusSquared(),enemy);
         if (robots.length == 0) {
             return true;
