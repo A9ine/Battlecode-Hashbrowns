@@ -30,9 +30,7 @@ public strictfp class Landscaper extends Unit {
                         hqLoc = loc;
                     }
                     for (MapLocation nearLoc : getAdjacent(hqLoc)) {
-                        staticWallsToBeBuilt.add(nearLoc);
                         isWall.put(nearLoc,true);
-                        staticWallsOrderID.add(nearLoc.x*100+nearLoc.y);
                     }
                     //System.out.println(staticWallsOrderID);
                 }
@@ -65,18 +63,32 @@ public strictfp class Landscaper extends Unit {
                     }
                 }
             }
+
+            if (message[0] == 6) {
+                int walls = message[2];
+                ArrayList<MapLocation> potentialWalls = getAdjacent(hqLoc);
+                //System.out.println(potentialWalls);
+                Collections.reverse(potentialWalls);
+                for (int i = 0; i < potentialWalls.size(); i ++) {
+                    if (walls%10 == 0) {
+                        if (!staticWallsToBeBuilt.contains(potentialWalls.get(i))) {
+                            staticWallsToBeBuilt.add(potentialWalls.get(i));
+                            staticWallsOrderID.add(potentialWalls.get(i).x*100+potentialWalls.get(i).y);
+                        }
+                    }
+                    walls = walls/10;
+                }
+            }
         }
 
     }
 
     @Override
     public void run() throws GameActionException {
+        System.out.println(state);
         landcaperUpdate();
 
         
-
-
-        //System.out.println(state);
         //System.out.println(staticWallTarget);
 
         //Always prioritize building repair and nearby attack
@@ -97,35 +109,41 @@ public strictfp class Landscaper extends Unit {
         if (state == 51) {
             if (staticWallTarget != null && staticWallTarget.equals(myMapLocation)) {
 
-                if (!fulfilled) {
+                /*if (!fulfilled) {
                     fulfilled = true;
                     tryBroadcastSuccess(orderID, averageSend);
-                }
+                }*/
                 ArrayList<MapLocation> adjacent = getAdjacent();
                 MapLocation minElevationTarget = myMapLocation;
                 Integer minElevation = rc.senseElevation(myMapLocation);
+
+                for (MapLocation wall : staticWallsToBeBuilt) {
+                    if (rc.canSenseLocation(wall) && rc.senseElevation(wall) + 100 < rc.senseElevation(myMapLocation)) {
+                        fuzzyNavigate(wall);
+                        staticWallTarget = rc.getLocation();
+                        break; 
+                    }
+                }
+
                 for (MapLocation loc : adjacent) {
                     if (isWall.containsKey(loc) && isWall.get(loc) && rc.senseElevation(loc) < minElevation && ((rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team && rc.senseRobotAtLocation(loc).getType()==RobotType.LANDSCAPER) || rc.getRoundNum() > 600)) {
                         minElevation = rc.senseElevation(loc);
                         minElevationTarget = loc;
                     }
                 }
-                if (tryDepositDirt(myMapLocation.directionTo(minElevationTarget))) {
-                    Clock.yield();
-                };
-                // Prioritize digging in the grid format
-                for (Direction dir : directions) {
-                    MapLocation loc = rc.adjacentLocation(dir);
-                    if ((!isWall.containsKey(loc) || !isWall.get(loc)) && (loc.x%2==0 || loc.y%2==0)) {
-                        if (tryDigDirt(dir)) {
-                            Clock.yield();
+                if (!tryDepositDirt(myMapLocation.directionTo(minElevationTarget))) {
+                    // Prioritize digging in the grid format
+                    for (Direction dir : directions) {
+                        MapLocation loc = rc.adjacentLocation(dir);
+                        if ((!isWall.containsKey(loc) || !isWall.get(loc)) && (loc.x%2==0 || loc.y%2==0)) {
+                            if (tryDigDirt(dir)) {
+                            }
                         }
                     }
                 }
             } else {
                 if (staticWallsToBeBuilt.size()<=0) {
                     state = 0;
-                    Clock.yield();
                 }
                 if (staticWallTarget == null && staticWallsToBeBuilt.size()>0) {
                     int index = 0;

@@ -40,9 +40,9 @@ public strictfp abstract class Robot {
 
     //TODO: Implement dynamic costs
     //Someone do this in local
-    int fastSend = 20;
-    int averageSend = 6;
-    int cheapSend = 2;
+    int fastSend = 10;
+    int averageSend = 3;
+    int cheapSend = 1;
 
     /* General Information */
     MapLocation hqLoc;
@@ -54,6 +54,10 @@ public strictfp abstract class Robot {
     //This method will run each turn, with the exception of turn 1
     void update() throws GameActionException {
         if (communicationsToSend.size()>0) {
+            /*for (int[] communication : communicationsToSend) {
+                System.out.println(Arrays.toString(communication));
+            }*/
+            //System.out.println("Sending comms");
             trySendBlockchain(communicationsToSend.poll(), costsToSend.poll());
         }
         turn += 1;
@@ -64,8 +68,12 @@ public strictfp abstract class Robot {
         for (MapLocation loc : nearbySoup) {
             if (map[getMiniMapLocation(loc)][1] == 0) {
                 tryBroadcastLocation(loc, cheapSend);
+                System.out.println(map[getMiniMapLocation(loc)][1]);
+                System.out.println("Robot.JAVA is sending out location.");
+                System.out.println(loc);
             }
-            map[getMiniMapLocation(loc)][1] = rc.senseSoup(loc);
+            map[getMiniMapLocation(loc)][1] = 100;
+            System.out.println(map[getMiniMapLocation(loc)][1]);
         }
         
         if (nearbySoup.length == 0) {
@@ -85,10 +93,11 @@ public strictfp abstract class Robot {
                     MapLocation loc = new MapLocation((message[1]%10000-message[1]%100)/100, message[1]%100);
                     map[getMiniMapLocation(loc)][1] = message[3];
                 }
+                if (message[0] == 6) {
+                    symmetry = message[1];
+                }
             }
-            
-        }
-
+        } 
     }
 
     //Navigation and minimap
@@ -119,8 +128,6 @@ public strictfp abstract class Robot {
     //Communication Code
 
         //Broadcast info
-
-            //TODO: Go compress the bits Richard
             
             //[Action] 
                 // 0 --> Data
@@ -138,6 +145,7 @@ public strictfp abstract class Robot {
 
     private boolean secureSend(int[] message, int cost) throws GameActionException {
         //TODO: Implement better encryption
+        //System.out.println(rc.getID());
         return(trySendBlockchain(new int[] {message[0],message[1],message[2],message[3],message[4],message[5],KEY}, cost));
     }
 
@@ -178,8 +186,10 @@ public strictfp abstract class Robot {
             rc.submitTransaction(message, cost);
             return true;
         } else {
-            communicationsToSend.add(message);
-            costsToSend.add(cost);
+            if (!communicationsToSend.contains(message)) {
+                communicationsToSend.add(message);
+                costsToSend.add(cost);
+            }
             return false;
         }
         
@@ -200,7 +210,7 @@ public strictfp abstract class Robot {
         if (!rc.canSenseLocation(loc)) {
             return false;
         }
-        //System.out.println("Trying to send a location");
+        System.out.println("Trying to send a location");
         int soup = rc.senseSoup(loc);
         int elevation = rc.senseElevation(loc);
         int flooded = rc.senseFlooding(loc)?1:0;

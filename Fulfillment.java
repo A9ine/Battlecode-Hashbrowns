@@ -39,7 +39,7 @@ public strictfp class Fulfillment extends Building {
             }
         }
         
-        if (rc.getTeamSoup() > 150 + droneCount * 300 * multiplier) {
+        if (rc.getTeamSoup() > 200 + 400 * multiplier) {
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.DELIVERY_DRONE, dir)) {
                     droneCount += 1;

@@ -96,7 +96,6 @@ public strictfp class Miner extends Unit {
         currentMinRange = -1;
         leftMineLocation = null;
         wantToBuildRefinery = false;
-
     }
 
     void minerUpdate() throws GameActionException {
@@ -170,6 +169,14 @@ public strictfp class Miner extends Unit {
                 }
             }
 
+            if (message[0] == 6) {
+                if (message[2] == 11111111) {
+                    if (refinerySpots.contains(hqLoc)) {
+                        refinerySpots.remove(hqLoc);
+                    }
+                }
+            }
+
             //Check last communications
 
             
@@ -182,7 +189,7 @@ public strictfp class Miner extends Unit {
     public void run() throws GameActionException {
         System.out.println(state);
         minerUpdate();
-        System.out.println(buildTarget);
+        //System.out.println(buildTarget);
         //System.out.println(currentBuildID);
         //System.out.println(currentBuildTarget);
         //System.out.println(buildTarget);
@@ -249,8 +256,8 @@ public strictfp class Miner extends Unit {
                     System.out.println("I found a building location");
                     state = 53;
                     currentBuildID = buildID.get(i);
-                    System.out.println("Current build ID");
-                    System.out.println(currentBuildID);
+                    //System.out.println("Current build ID");
+                    //System.out.println(currentBuildID);
                     currentBuildTarget = buildTarget.get(i);
                     currentBuildLocation = buildLocation.get(i);
                     currentMinRange = buildMinRange.get(i);
@@ -261,8 +268,8 @@ public strictfp class Miner extends Unit {
         }
 
         if (state == 53) {
-            System.out.println("Current Build Location");
-            System.out.println(currentBuildLocation);
+            //System.out.println("Current Build Location");
+            //System.out.println(currentBuildLocation);
             if (currentBuildLocation == null) {
                 reset();
             } else {
@@ -315,6 +322,7 @@ public strictfp class Miner extends Unit {
         //Refining
         if (state == 52) {
             moveTarget = findClosestRefinery(myMapLocation);
+            System.out.println(refinerySpots);
             //System.out.println(moveTarget);
             if (moveTarget == null) {
                 wantToBuildRefinery = true;
@@ -352,8 +360,8 @@ public strictfp class Miner extends Unit {
         if (rc.isReady()) {
             if (moveTarget != null && bugNavigate(moveTarget)) {
                 if (!myMapLocation.equals(moveTarget)) {
-                    //Not sure if this should be added
-                    map[getMiniMapLocation(moveTarget)][1] = 0;
+                    //Not sure if this should be added Conclusion - It shouldn't be added
+                    //map[getMiniMapLocation(moveTarget)][1] = 0;
                     //Can't get to the target
                     if (state == 53) {
                         for (int i = 0; i < buildID.size(); i++) {

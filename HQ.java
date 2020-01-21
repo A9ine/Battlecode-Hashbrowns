@@ -74,6 +74,27 @@ public strictfp class HQ extends Building {
             }
         }
 
+        if (turn > 60) {
+            ArrayList<MapLocation> walls = getAdjacent();
+            int sendWall = 0;
+            for (int i = 0; i < walls.size(); i ++) {
+                if (rc.isLocationOccupied(walls.get(i)) && rc.senseRobotAtLocation(walls.get(i)).getTeam()==team && rc.senseRobotAtLocation(walls.get(i)).getType()==RobotType.LANDSCAPER){
+                    sendWall *= 10;
+                    sendWall += 1;
+                } else{
+                    sendWall *= 10;
+                }
+            }
+            if (turn % 50 == 0) {
+                tryBroadcastImportant(symmetry, sendWall, averageSend); 
+            }
+            else if (turn % 10 == 0) {
+                tryBroadcastImportant(symmetry, sendWall, cheapSend);
+            } 
+        }
+
+        //Miner construction
+
         if (minerNum < 20) {
             if  (turn < 10) {
                 for (Direction dir : directions) {

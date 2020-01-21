@@ -51,6 +51,10 @@ public strictfp class Drone extends Unit {
     @Override
     public void run() throws GameActionException {
 
+        if (rc.getRoundNum() > 500) {
+            bugNavigate(hqLoc);
+        }
+
         System.out.println(state);
 
         droneUpdate();
