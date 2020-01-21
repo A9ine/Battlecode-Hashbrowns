@@ -31,7 +31,7 @@ public strictfp class Design extends Building {
 
         update();
 
-        if ((rc.getTeamSoup()>150 && landscaperNumber < 10) || rc.getTeamSoup()>landscaperNumber*150 || rc.getTeamSoup() > 600) {
+        if ((rc.getTeamSoup()>150 + landscaperNumber && landscaperNumber < 10) || rc.getTeamSoup()>landscaperNumber*150 || rc.getTeamSoup() > 600) {
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.LANDSCAPER, dir)) {
                     landscaperNumber += 1;

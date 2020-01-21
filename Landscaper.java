@@ -73,12 +73,19 @@ public strictfp class Landscaper extends Unit {
     public void run() throws GameActionException {
         landcaperUpdate();
 
+        
+
+
         //System.out.println(state);
         //System.out.println(staticWallTarget);
 
+        //Always prioritize building repair and nearby attack
         for (MapLocation loc : getAdjacent()) {
             if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()!=team &&rc.senseRobotAtLocation(loc).getType().isBuilding()){
                 tryDepositDirt(myMapLocation.directionTo(loc));
+            }
+            if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team &&rc.senseRobotAtLocation(loc).getType().isBuilding()){
+                tryDigDirt(myMapLocation.directionTo(loc));
             }
         }
 
@@ -92,7 +99,7 @@ public strictfp class Landscaper extends Unit {
 
                 if (!fulfilled) {
                     fulfilled = true;
-                    while(!tryBroadcastSuccess(orderID, averageSend));
+                    tryBroadcastSuccess(orderID, averageSend);
                 }
                 ArrayList<MapLocation> adjacent = getAdjacent();
                 MapLocation minElevationTarget = myMapLocation;
@@ -106,8 +113,10 @@ public strictfp class Landscaper extends Unit {
                 if (tryDepositDirt(myMapLocation.directionTo(minElevationTarget))) {
                     Clock.yield();
                 };
+                // Prioritize digging in the grid format
                 for (Direction dir : directions) {
-                    if (!isWall.containsKey(rc.adjacentLocation(dir)) || !isWall.get(rc.adjacentLocation(dir))) {
+                    MapLocation loc = rc.adjacentLocation(dir);
+                    if ((!isWall.containsKey(loc) || !isWall.get(loc)) && (loc.x%2==0 || loc.y%2==0)) {
                         if (tryDigDirt(dir)) {
                             Clock.yield();
                         }

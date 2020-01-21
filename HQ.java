@@ -8,7 +8,6 @@ public strictfp class HQ extends Building {
     int minerNum = 0;
     int designSchoolNum = 0;
     int fulfillmentCenterNum = 0;
-    int orderID = 0;
     boolean stageOne = false; //Turn 50 or enemy rush
     ArrayList<MapLocation> buildingLocations = new ArrayList<MapLocation>(); 
 
@@ -47,59 +46,33 @@ public strictfp class HQ extends Building {
             tryBroadcastLocation(myMapLocation, averageSend);
         }
 
-        //Start building the base
+        //Start building the base 
         if (turn == 60) {
-            //Make sure there is a miner nearby
-            for (Direction dir : directions) {
-                if(tryBuild(RobotType.MINER, dir)) {
-                    minerNum += 1;
-                };
-            }
-            //If someone rushes us
-            //We are fucked
-            //TODO: Unfuck us with defense code
-            //TODO: Potential fuck up point : No Building loc found
-            //Someone should do a BFS or something
-            MapLocation target = myMapLocation.translate(0,2);
-            for (int i = 2; i >= -2; i --) {
-                for (int j = 2; j >= -2; j --) {
-                    MapLocation temp = myMapLocation.translate(i,j);
-
-                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 6 && !rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
-                        target = temp;
-                    }
-                }
-            }
-
-            buildingLocations.add(target);
-            orderID+=1;
-            while (!tryBroadcastBuild(target, RobotType.DESIGN_SCHOOL, rc.getID()+orderID, fastSend));
+            System.out.println(orderID);
+            tryBroadcastBuild(myMapLocation, RobotType.FULFILLMENT_CENTER, 3, 16, rc.getID()+orderID, averageSend);
+            System.out.println(orderID);
+            tryBroadcastBuild(myMapLocation, RobotType.DESIGN_SCHOOL, 3, 16, rc.getID()+orderID, averageSend);
         }
 
-        if (turn == 60) {
-            //Make sure there is a miner nearby
-            for (Direction dir : directions) {
-                if(tryBuild(RobotType.MINER, dir)) {
-                    minerNum += 1;
-                };
-            }
-            //If someone rushes us
-            //We are fucked
-            MapLocation target = myMapLocation.translate(0,2);
-            for (int i = -2; i <= 2; i ++) {
-                for (int j = -2; j <= 2; j ++) {
-                    MapLocation temp = myMapLocation.translate(i,j);
-                    System.out.println(temp.distanceSquaredTo(myMapLocation));
-                    if (rc.onTheMap(temp) && temp.distanceSquaredTo(myMapLocation)>2 && !rc.senseFlooding(temp) && Math.abs(rc.senseElevation(temp) - rc.senseElevation(myMapLocation)) <= 6 && !rc.isLocationOccupied(temp) && !buildingLocations.contains(temp)) {
-                        target = temp;
-                    }
+        //If base appears to be destroyed, try replacing
+        if (turn % 100 == 0) {
+            boolean hasDesign = false;
+            boolean hasFulfillment = false;
+            for (RobotInfo robot : nearbyRobots) {
+                if (robot.getTeam() == team && robot.getType() == RobotType.DESIGN_SCHOOL) {
+                    hasDesign = true;
+                }
+                if (robot.getTeam() == team && robot.getType() == RobotType.FULFILLMENT_CENTER) {
+                    hasFulfillment = true;
                 }
             }
-            buildingLocations.add(target);
-            orderID+=1;
-            while (!tryBroadcastBuild(target, RobotType.FULFILLMENT_CENTER, rc.getID()+orderID, fastSend));
+            if (!hasDesign) {
+                tryBroadcastBuild(myMapLocation, RobotType.DESIGN_SCHOOL, 3, 16, rc.getID()+orderID, averageSend);
+            }
+            if (!hasFulfillment) {
+                tryBroadcastBuild(myMapLocation, RobotType.FULFILLMENT_CENTER, 3, 16, rc.getID()+orderID, averageSend);
+            }
         }
-
 
         if (minerNum < 20) {
             if  (turn < 10) {

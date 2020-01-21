@@ -17,10 +17,9 @@ public strictfp abstract class Robot {
         miniMapWidth = (rc.getMapWidth()+rc.getMapWidth()%4)/4; 
         miniMapHeight = (rc.getMapHeight()+rc.getMapHeight()%4)/4;
         map = new int[miniMapWidth*(miniMapHeight+1)][4];
-        myType = rc.getType(); 
+        myType = rc.getType();
         //[Elevation][Resources][Enemy][Friendly]
     }
-
     protected static RobotController rc;
 
     /* Updated Information */
@@ -30,15 +29,19 @@ public strictfp abstract class Robot {
     int[][] map;
     int miniMapWidth;
     int miniMapHeight;
+    int orderID = 0;
 
     RobotInfo[] nearbyRobots;
     MapLocation[] nearbySoup;
     //Communication
     Transaction[] latestCommunication;
+    Queue<int[]> communicationsToSend = new LinkedList<int[]>();
+    Queue<Integer> costsToSend = new LinkedList<Integer>();
+
     //TODO: Implement dynamic costs
     //Someone do this in local
-    int fastSend = 30;
-    int averageSend = 10;
+    int fastSend = 20;
+    int averageSend = 6;
     int cheapSend = 2;
 
     /* General Information */
@@ -50,6 +53,9 @@ public strictfp abstract class Robot {
 
     //This method will run each turn, with the exception of turn 1
     void update() throws GameActionException {
+        if (communicationsToSend.size()>0) {
+            trySendBlockchain(communicationsToSend.poll(), costsToSend.poll());
+        }
         turn += 1;
         myMapLocation = rc.getLocation();
         //Update map
@@ -123,7 +129,7 @@ public strictfp abstract class Robot {
                 // 3 --> Attack
                 // 4 --> Transport
                 // 5 --> Sucess
-                // 6 --> Drone Wall
+                // 6 --> Important Information (Symmetry, HQ Wall)
             //[flooded + x + y]
             //[Elevation]
             //[Soup]
@@ -171,8 +177,23 @@ public strictfp abstract class Robot {
         if (rc.canSubmitTransaction(message, cost)) {
             rc.submitTransaction(message, cost);
             return true;
+        } else {
+            communicationsToSend.add(message);
+            costsToSend.add(cost);
+            return false;
         }
-        return false;
+        
+    }
+
+    boolean tryBroadcastImportant(Integer symmetry, Integer wall, int cost) throws GameActionException {
+        return secureSend(new int[] {
+            6,
+            symmetry,
+            wall,
+            0,
+            0,
+            0
+        }, cost);
     }
 
     boolean tryBroadcastLocation(MapLocation loc, int cost) throws GameActionException {
@@ -202,17 +223,18 @@ public strictfp abstract class Robot {
 
     }
 
-    boolean tryBroadcastBuild(MapLocation loc, RobotType type, int orderID, int cost) throws GameActionException {
+    boolean tryBroadcastBuild(MapLocation loc, RobotType type, int minRange, int maxRange, int inOrderID, int cost) throws GameActionException {
         System.out.println("Trying to send a building");
+        orderID += 1;
         int robotype = robotype = getRobotTypeID(type);
         
         return secureSend(new int[] {
             1,
-            loc.x* 100 + loc.y,
-            0,
-            0,
+            loc.x*100+loc.y,
+            minRange,
+            maxRange,
             robotype, 
-            orderID
+            inOrderID
         }, cost);
     }
 
