@@ -30,16 +30,17 @@ public strictfp class Fulfillment extends Building {
     @Override
     public void run() throws GameActionException {
         update();
-        multiplier = 1;
+        multiplier = 10;
         if (nearbyRobots.length > 0) {
             for (RobotInfo robot : nearbyRobots) {
-                if (robot.getTeam() != team && robot.getType() != RobotType.DELIVERY_DRONE) {
-                    multiplier = 0.1;
+                if (robot.getTeam() != team && robot.getType() != RobotType.DELIVERY_DRONE && !robot.getType().isBuilding()) {
+                    multiplier = 0;
                 }
             }
         }
+        System.out.println(multiplier);
         
-        if (rc.getTeamSoup() > 200 + 400 * multiplier) {
+        if (droneCount < 2 && rc.getTeamSoup() > 200 + 200 * multiplier || rc.getTeamSoup() > 550 && Math.random()<0.2) {
             for (Direction dir : directions) {
                 if(tryBuild(RobotType.DELIVERY_DRONE, dir)) {
                     droneCount += 1;

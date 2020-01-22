@@ -72,6 +72,11 @@ public strictfp class HQ extends Building {
             if (!hasFulfillment) {
                 tryBroadcastBuild(myMapLocation, RobotType.FULFILLMENT_CENTER, 3, 16, rc.getID()+orderID, averageSend);
             }
+            if (rc.getTeamSoup() > 600) {
+                tryBroadcastBuild(myMapLocation, RobotType.DESIGN_SCHOOL, 8, 50, rc.getID()+orderID, averageSend);
+                tryBroadcastBuild(myMapLocation, RobotType.FULFILLMENT_CENTER, 8, 50, rc.getID()+orderID, averageSend);
+            }
+            tryBroadcastBuild(myMapLocation, RobotType.VAPORATOR, 8, 40, rc.getID()+orderID, cheapSend);
         }
 
         if (turn > 60) {

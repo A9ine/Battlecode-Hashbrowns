@@ -272,6 +272,17 @@ public strictfp abstract class Robot {
 
     //Sensing Code
 
+    boolean isLatticeHole(MapLocation loc)  {
+        if (loc.x%2 == hqLoc.x%2 && loc.y%2==hqLoc.y%2){
+            return true;
+        }
+        return false;
+    }
+
+    Integer getRingAroundLoc(MapLocation target, MapLocation sensing) {
+        return Integer.max(Math.abs(target.x-sensing.x), Math.abs(target.y-sensing.y));
+    }
+
     //Return all map locations in sensing range
     /* !!! Don't use this function, its too expensive */
     ArrayList<MapLocation> getNear() throws GameActionException {

@@ -195,6 +195,28 @@ public strictfp class Miner extends Unit {
         //System.out.println(buildTarget);
         //System.out.println(buildID);
 
+        //Self defence against drones
+        boolean gunNearby = false;
+        for (RobotInfo robot : nearbyRobots) {
+            if (robot.getTeam() == team && robot.getType() == RobotType.NET_GUN) {
+                gunNearby = true;
+                break;
+            }
+        }
+
+        if (!gunNearby) {
+            for (RobotInfo robot : nearbyRobots) {
+                if (robot.getTeam() == team.opponent() && robot.getType() == RobotType.DELIVERY_DRONE && robot.location.distanceSquaredTo(myMapLocation)<=8 && rc.getTeamSoup() > 300) {
+                    for (Direction dir : directions) {
+                        if(tryBuild(RobotType.NET_GUN, dir)){
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         if (turn == 1) {
             for (MapLocation loc : getAdjacent()) {
                 if (rc.isLocationOccupied(loc) && rc.senseRobotAtLocation(loc).getType() == RobotType.HQ && rc.senseRobotAtLocation(loc).getTeam() == team) { 
@@ -361,7 +383,7 @@ public strictfp class Miner extends Unit {
             if (moveTarget != null && bugNavigate(moveTarget)) {
                 if (!myMapLocation.equals(moveTarget)) {
                     //Not sure if this should be added Conclusion - It shouldn't be added
-                    //map[getMiniMapLocation(moveTarget)][1] = 0;
+                    map[getMiniMapLocation(moveTarget)][1] = -1;
                     //Can't get to the target
                     if (state == 53) {
                         for (int i = 0; i < buildID.size(); i++) {

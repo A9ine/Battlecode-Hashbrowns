@@ -6,6 +6,7 @@ import battlecode.common.*;
 public strictfp class Drone extends Unit {
 
     RobotInfo[] enemyRobots;
+    RobotInfo[] cows;
     ArrayList<Integer> waterLocations = new ArrayList<Integer>();
 
     boolean tryPickup(int ID) throws GameActionException {
@@ -45,15 +46,12 @@ public strictfp class Drone extends Unit {
     void droneUpdate() throws GameActionException {
         update();
         enemyRobots = rc.senseNearbyRobots(GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED,team.opponent());
+        cows = rc.senseNearbyRobots(GameConstants.NET_GUN_SHOOT_RADIUS_SQUARED,team.NEUTRAL);
     }
 
 
     @Override
     public void run() throws GameActionException {
-
-        if (rc.getRoundNum() > 500) {
-            bugNavigate(hqLoc);
-        }
 
         System.out.println(state);
 
@@ -64,6 +62,9 @@ public strictfp class Drone extends Unit {
             if (enemyRobots.length > 0) {
                 int minimum = Integer.MAX_VALUE;
                 RobotInfo potential = null;
+                for (RobotInfo cow : cows) {
+                    potential = cow;
+                }
                 for (RobotInfo robot : enemyRobots) {
                     if (minimum > robot.location.distanceSquaredTo(myMapLocation) && !robot.getType().isBuilding() && robot.getType()!=RobotType.DELIVERY_DRONE) {
                         potential = robot;
@@ -83,8 +84,17 @@ public strictfp class Drone extends Unit {
                 state = 41;
             }
 
-            if (moveTarget == null || myMapLocation.equals(moveTarget)) {
-                moveTarget = randomLocation();
+            if (moveTarget == null || myMapLocation.equals(moveTarget)  || moveTarget == hqLoc) {
+                if (rc.getRoundNum() > 500) {
+                    if (getRingAroundLoc(hqLoc, myMapLocation) > 2) {
+                        moveTarget = hqLoc;
+                    } else {
+                        moveTarget = myMapLocation;
+                    }
+                    
+                } else {
+                    moveTarget = randomLocation();
+                }
             }
         }
 
@@ -193,7 +203,9 @@ public strictfp class Drone extends Unit {
             if (moveTarget != null && bugNavigate(moveTarget)) {
                 if (!myMapLocation.equals(moveTarget)) {
                     state = 0;
-                    moveTarget = randomLocation();
+                    if (rc.getRoundNum() < 500) {
+                        moveTarget = randomLocation();
+                    }
                     System.out.println("Can't get there!");
                     
                 }

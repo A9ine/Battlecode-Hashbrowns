@@ -8,9 +8,12 @@ public strictfp class Landscaper extends Unit {
     ArrayList<MapLocation> staticWallsToBeBuilt = new ArrayList<MapLocation>();
     ArrayList<Integer> staticWallsOrderID = new ArrayList<Integer>(); 
     HashMap<MapLocation, Boolean> isWall = new HashMap<MapLocation, Boolean>(); 
+    MapLocation moveTarget;
     MapLocation staticWallTarget;
     Integer orderID;
     Boolean fulfilled = false;
+    int latticeElevation = 10;
+
 
     Landscaper(RobotController rc) throws GameActionException {
         super(rc);
@@ -39,6 +42,9 @@ public strictfp class Landscaper extends Unit {
     }
 
     void landcaperUpdate() throws GameActionException {
+        if (turn > 1500) {
+            latticeElevation = 20;
+        }
         update();
         landscaperCommunications();
     }
@@ -88,22 +94,86 @@ public strictfp class Landscaper extends Unit {
         System.out.println(state);
         landcaperUpdate();
 
-        
         //System.out.println(staticWallTarget);
 
         //Always prioritize building repair and nearby attack
         for (MapLocation loc : getAdjacent()) {
-            if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()!=team &&rc.senseRobotAtLocation(loc).getType().isBuilding()){
-                tryDepositDirt(myMapLocation.directionTo(loc));
-            }
-            if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team &&rc.senseRobotAtLocation(loc).getType().isBuilding()){
+            if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team &&rc.senseRobotAtLocation(loc).getType().isBuilding() && rc.senseRobotAtLocation(loc).dirtCarrying > 0){
+                System.out.println("Repairing!");
                 tryDigDirt(myMapLocation.directionTo(loc));
+                if (rc.getDirtCarrying() > 20) {
+                    for (Direction dir : directions) {
+                        if (!rc.isLocationOccupied(rc.adjacentLocation(dir))){
+                            tryDepositDirt(dir);
+                        }
+                    }
+                }
+            }
+
+            if (rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()!=team &&rc.senseRobotAtLocation(loc).getType().isBuilding()){
+                System.out.println("Enemy spotted!");
+                tryDepositDirt(myMapLocation.directionTo(loc));
+
+                for (MapLocation locloc : getAdjacent()) {
+                    if (rc.isLocationOccupied(locloc) && rc.senseRobotAtLocation(loc).getType().isBuilding() || rc.senseElevation(locloc) < -50) {
+                        continue;
+                    }
+                    if (!rc.isLocationOccupied(locloc) && !(isWall.containsKey(loc) && isWall.get(loc))) {
+
+                        if (rc.getDirtCarrying() == 0) {
+                            tryDigDirt(myMapLocation.directionTo(locloc));
+                        }
+                        continue;
+                    } 
+                }
+
+                return;
             }
         }
 
         if (state == 0) {
-            //Might as well check the HQ Walls
-            state = 51;
+            System.out.println(moveTarget);
+            //HQ Walls are always top priority
+            if (staticWallsToBeBuilt.size()>0) {
+                state = 51;
+            }
+            if (moveTarget == null || myMapLocation.equals(moveTarget)) {
+                moveTarget = randomLocation();
+            }
+            boolean done = true;
+            ArrayList<MapLocation> adjacentLoc = getAdjacent();
+            adjacentLoc.add(myMapLocation);
+            for (MapLocation loc : getAdjacent()) {
+                if (rc.isLocationOccupied(loc) && rc.senseRobotAtLocation(loc).getType().isBuilding() || rc.senseElevation(loc) < -50) {
+                    continue;
+                }
+                if (isLatticeHole(myMapLocation)) {
+                    fuzzyNavigate(loc);
+                    done = false;
+                    break;
+                }
+                if (isLatticeHole(loc) && !loc.equals(myMapLocation)) {
+                    if (rc.getDirtCarrying() == 0) {
+                        tryDigDirt(myMapLocation.directionTo(loc));
+                    }
+                    continue;
+                } 
+                if (rc.senseElevation(loc) < latticeElevation) {
+                    done = false;
+                    tryDepositDirt(myMapLocation.directionTo(loc));
+                }
+                
+            }
+            //System.out.println(done);
+            if (done) {
+                if (bugNavigate(moveTarget)) {
+                    moveTarget = randomLocation();
+                    while (isLatticeHole(moveTarget)) {
+                        moveTarget = randomLocation();
+                    }
+                }
+                
+            }
         }
 
         if (state == 51) {
@@ -135,7 +205,7 @@ public strictfp class Landscaper extends Unit {
                     // Prioritize digging in the grid format
                     for (Direction dir : directions) {
                         MapLocation loc = rc.adjacentLocation(dir);
-                        if ((!isWall.containsKey(loc) || !isWall.get(loc)) && (loc.x%2==0 || loc.y%2==0)) {
+                        if ((!isWall.containsKey(loc) || !isWall.get(loc)) && isLatticeHole(loc)) {
                             if (tryDigDirt(dir)) {
                             }
                         }
@@ -160,35 +230,6 @@ public strictfp class Landscaper extends Unit {
                     staticWallsOrderID.remove(index);
                     staticWallsToBeBuilt.remove(index);
                 }
-                if(staticWallTarget == null) {
-                    state = 0;
-                    if (myMapLocation.distanceSquaredTo(hqLoc)>8) {
-                        fuzzyNavigate(hqLoc);
-                    }
-                    ArrayList<MapLocation> adjacent = getAdjacent();
-                    MapLocation minElevationTarget = myMapLocation;
-                    Integer minElevation = (int)(rc.senseElevation(myMapLocation)*2);
-                    if (minElevation < 0) {
-                        minElevation = 500;
-                    }
-                    for (MapLocation loc : adjacent) {
-                        if (isWall.containsKey(loc) && isWall.get(loc) && rc.senseElevation(loc) < minElevation && ((rc.senseRobotAtLocation(loc) != null && rc.senseRobotAtLocation(loc).getTeam()==team && rc.senseRobotAtLocation(loc).getType()==RobotType.LANDSCAPER) || rc.getRoundNum() > 600)) {
-                            minElevation = rc.senseElevation(loc);
-                            minElevationTarget = loc;
-                        }
-                    }
-                    if (tryDepositDirt(myMapLocation.directionTo(minElevationTarget))) {
-                        Clock.yield();
-                    };
-                    for (Direction dir : directions) {
-                        if (!isWall.containsKey(rc.adjacentLocation(dir)) || !isWall.get(rc.adjacentLocation(dir))) {
-                            if (tryDigDirt(dir)) {
-                                Clock.yield();
-                            }
-                        }
-                    }
-                    return;
-                }
                 if (rc.canSenseLocation(staticWallTarget) && rc.senseRobotAtLocation(staticWallTarget) != null) {
                     if (rc.senseRobotAtLocation(staticWallTarget).getTeam() == team && rc.senseRobotAtLocation(staticWallTarget).getType()==RobotType.LANDSCAPER) {
                         staticWallTarget = null;
@@ -203,7 +244,10 @@ public strictfp class Landscaper extends Unit {
                         fuzzyNavigate(staticWallTarget);
                     }
                 }
-                
+
+                if (staticWallTarget == null) {
+                    state = 0;
+                }
             }
             
         }
