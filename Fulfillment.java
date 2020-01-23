@@ -31,6 +31,22 @@ public strictfp class Fulfillment extends Building {
     public void run() throws GameActionException {
         update();
         multiplier = 10;
+
+        // rush defense
+        // produces number of drones equal to the number of enemies nearby\
+        // dont know if this is the best option, will do some testing
+        if (nearbyRobots.length > 0 && turn<700) {
+            int count = nearbyRobots.length;
+            while (count!=0) {
+                for (Direction dir : directions) {
+                    if (tryBuild(RobotType.DELIVERY_DRONE, dir)) {
+                        droneCount += 1;
+                        count--;
+                    }
+                }
+            }
+        }
+
         if (nearbyRobots.length > 0) {
             for (RobotInfo robot : nearbyRobots) {
                 if (robot.getTeam() != team && robot.getType() != RobotType.DELIVERY_DRONE && !robot.getType().isBuilding()) {
